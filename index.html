@@ -46,18 +46,7 @@
             position: relative;
         }
 
-        /* Confetti Canvas - Full Screen Overlay */
-        #confetti-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 100;
-        }
-
-        /* Floating Hearts Background */
+        /* Floating Hearts Background (CSS Animation) */
         .hearts-bg {
             position: absolute;
             top: 0;
@@ -74,48 +63,112 @@
             font-size: 2rem;
             opacity: 0.3;
             animation: float 15s linear infinite;
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
         }
 
         @keyframes float {
             0% {
-                transform: translateY(110vh) rotate(0deg);
+                transform: translateY(110vh) rotate(0deg) scale(0.8);
                 opacity: 0;
             }
 
             10% {
-                opacity: 0.3;
+                opacity: 0.4;
             }
 
             90% {
-                opacity: 0.3;
+                opacity: 0.4;
             }
 
             100% {
-                transform: translateY(-10vh) rotate(360deg);
+                transform: translateY(-10vh) rotate(360deg) scale(1.2);
                 opacity: 0;
             }
         }
 
+        /* Sparkle Animation */
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: twinkle 4s infinite ease-in-out;
+            box-shadow: 0 0 10px white;
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.5);
+            }
+        }
+
+
         /* Main Card */
         .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
             padding: 3rem;
             border-radius: 24px;
-            box-shadow: 0 10px 40px rgba(106, 27, 154, 0.1);
+            box-shadow: 0 15px 45px rgba(106, 27, 154, 0.15);
             text-align: center;
             max-width: 90%;
-            width: 450px;
+            width: 500px;
+            /* Slightly wider for new text */
             position: relative;
             z-index: 10;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
+
+        /* Corner Decorations */
+        .corner-heart {
+            position: absolute;
+            font-size: 1.5rem;
+            opacity: 0.6;
+            color: var(--primary-color);
+        }
+
+        .tl {
+            top: 15px;
+            left: 15px;
+            transform: rotate(-15deg);
+        }
+
+        .tr {
+            top: 15px;
+            right: 15px;
+            transform: rotate(15deg);
+        }
+
+        .bl {
+            bottom: 15px;
+            left: 15px;
+            transform: rotate(15deg);
+        }
+
+        .br {
+            bottom: 15px;
+            right: 15px;
+            transform: rotate(-15deg);
+        }
+
 
         h1 {
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
             color: var(--primary-color);
+            text-shadow: 0 2px 10px rgba(142, 36, 170, 0.1);
         }
 
         .question {
@@ -157,11 +210,26 @@
             background-color: var(--primary-color);
             color: white;
             z-index: 2;
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 4px 15px rgba(142, 36, 170, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 25px rgba(142, 36, 170, 0.6);
+            }
+
+            100% {
+                box-shadow: 0 4px 15px rgba(142, 36, 170, 0.3);
+            }
         }
 
         .btn-yes:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(142, 36, 170, 0.3);
+            transform: scale(1.1);
+            background-color: #7B1FA2;
         }
 
         .btn-no {
@@ -204,17 +272,39 @@
         }
 
         .success-msg {
-            font-size: 1.1rem;
+            font-size: 1rem;
+            /* Slightly smaller to fit text */
             line-height: 1.6;
             margin-bottom: 1.5rem;
             color: #4A148C;
+            text-align: left;
+            /* Better for long text */
+            padding: 0 1rem;
         }
 
-        .footer {
-            font-size: 0.8rem;
-            color: #BDBDBD;
-            margin-top: 2rem;
-            font-style: italic;
+        .success-msg p {
+            margin-bottom: 1rem;
+        }
+
+        /* Celebration Confetti (CSS Only) */
+        .celebration-emoji {
+            position: fixed;
+            font-size: 2rem;
+            z-index: 100;
+            animation: fall linear forwards;
+            pointer-events: none;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-10vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(110vh) rotate(360deg);
+                opacity: 0;
+            }
         }
 
         /* Animations */
@@ -233,7 +323,8 @@
         /* Mobile specific */
         @media (max-width: 480px) {
             .card {
-                padding: 2rem;
+                padding: 2rem 1.5rem;
+                width: 95%;
             }
 
             h1 {
@@ -243,19 +334,31 @@
             .question {
                 font-size: 1.3rem;
             }
+
+            .success-msg {
+                font-size: 0.95rem;
+                padding: 0;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <canvas id="confetti-canvas"></canvas>
-
     <div class="hearts-bg" id="hearts-bg">
         <!-- Hearts will be added via JS -->
     </div>
 
+    <!-- Sparkles container -->
+    <div id="sparkles-container"></div>
+
     <div class="card" id="main-card">
+        <!-- Corner Decorations -->
+        <div class="corner-heart tl">💜</div>
+        <div class="corner-heart tr">✨</div>
+        <div class="corner-heart bl">✨</div>
+        <div class="corner-heart br">💜</div>
+
         <div id="question-content">
             <h1>Hey 💜</h1>
             <div class="question">Will you be my Valentine?</div>
@@ -274,179 +377,166 @@
         <div id="success-content" class="success-content">
             <h1>Thank you for saying yes 💜</h1>
             <div class="success-msg">
-                These past few days talking to you have been so good.<br>
-                Even though I won’t be in Texas, we can still watch Chainsaw Man together.<br>
-                I love listening to your stories and hearing about your day.<br><br>
-                Happy Valentine’s Day 🌸💘
+                <p>These past few days talking to you have been so good.</p>
+                <p>Even though I won’t be in Texas, we can still watch Chainsaw Man together.</p>
+                <p>I love listening to your stories and hearing about your day.</p>
+
+                <p>I really like hearing about what you ate, what energy drink you got, how work was, and how school
+                    went.<br>
+                    I like how you randomly bring up random things out of nowhere and surprise me.<br>
+                    I like how you always respond so fast, and how you’re always nice to me and very understanding.</p>
+
+                <p>Our calls make my day, even when I’m not feeling good sometimes.<br>
+                    I don’t always tell you because I want you to be in a good mood for real.</p>
+
+                <p>I hope you like this surprise.<br>
+                    (Doesn’t matter though… you had to say yes anyways 🙂💘)</p>
+
+                <p style="text-align: center; margin-top: 1.5rem; font-weight: 600;">Happy Valentine’s Day 🌸💘</p>
             </div>
-            <div class="footer">(Screenshot this and send it to me 😄)</div>
         </div>
     </div>
 
     <script>
-        // DOM Elements
-        const yesBtn = document.getElementById('yes-btn');
-        const noBtn = document.getElementById('no-btn');
-        const captionText = document.getElementById('caption-text');
-        const questionContent = document.getElementById('question-content');
-        const successContent = document.getElementById('success-content');
-        const card = document.getElementById('main-card');
-        const heartsBg = document.getElementById('hearts-bg');
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const yesBtn = document.getElementById('yes-btn');
+            const noBtn = document.getElementById('no-btn');
+            const captionText = document.getElementById('caption-text');
+            const questionContent = document.getElementById('question-content');
+            const successContent = document.getElementById('success-content');
+            const card = document.getElementById('main-card');
+            const heartsBg = document.getElementById('hearts-bg');
+            const sparklesContainer = document.getElementById('sparkles-container');
 
-        // State
-        let noAttempts = 0;
-        const captions = [
-            "C'mon 😭",
-            "Are you sure? 🥺",
-            "Don't do this to me...",
-            "Pretty please? 🌸",
-            "I'll be really sad 💔",
-            "Think about the snacks! 🍫",
-            "Last chance! 😖",
-            "Okay, I'm hiding the button!"
-        ];
+            // State
+            let noAttempts = 0;
+            const captions = [
+                "C'mon 😭",
+                "Are you sure? 🥺",
+                "Don't do this to me...",
+                "Pretty please? 🌸",
+                "I'll be really sad 💔",
+                "Think about the snacks! 🍫",
+                "Last chance! 😖",
+                "Okay, I'm hiding the button!"
+            ];
 
-        // Background Hearts
-        function createHearts() {
-            const emojis = ['💜', '🌸', '✨', '🤍'];
-            for (let i = 0; i < 15; i++) {
-                const heart = document.createElement('div');
-                heart.className = 'heart';
-                heart.innerText = emojis[Math.floor(Math.random() * emojis.length)];
-                heart.style.left = Math.random() * 100 + '%';
-                heart.style.animationDuration = (Math.random() * 10 + 10) + 's';
-                heart.style.animationDelay = (Math.random() * 10) + 's';
-                heartsBg.appendChild(heart);
+            // Background Hearts Animation
+            function createHearts() {
+                const emojis = ['💜', '🌸', '✨', '🤍', '🧸'];
+                const heartCount = 20;
+
+                for (let i = 0; i < heartCount; i++) {
+                    const heart = document.createElement('div');
+                    heart.className = 'heart';
+                    heart.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+                    heart.style.left = Math.random() * 100 + '%';
+                    heart.style.top = Math.random() * 100 + '%';
+                    heart.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                    heart.style.animationDelay = '-' + (Math.random() * 15) + 's'; // Start immediately
+                    heartsBg.appendChild(heart);
+                }
             }
-        }
-        createHearts();
 
-        // Dodge Logic
-        function dodgeNo() {
-            noAttempts++;
-
-            // Move NO button
-            const cardRect = card.getBoundingClientRect();
-            const btnRect = noBtn.getBoundingClientRect();
-
-            // Calculate random position within the card
-            // Ensure interaction stays fun but usable
-            // Padding from edges
-            const padding = 20;
-
-            // Current position is static in flex, switch to absolute
-            noBtn.style.position = 'absolute';
-
-            // Calculate boundaries relative to card content
-            const maxX = cardRect.width - btnRect.width - padding;
-            const maxY = cardRect.height - btnRect.height - padding;
-
-            const randomX = Math.random() * maxX;
-            const randomY = Math.random() * maxY;
-
-            noBtn.style.left = `${randomX}px`;
-            noBtn.style.top = `${randomY}px`;
-
-            // Text Update
-            const textIndex = Math.min(noAttempts - 1, captions.length - 1);
-            captionText.innerText = captions[textIndex];
-            captionText.classList.add('visible');
-
-            // Resize Buttons
-            const scaleYes = 1 + (noAttempts * 0.1);
-            const scaleNo = Math.max(0.6, 1 - (noAttempts * 0.1));
-
-            yesBtn.style.transform = `scale(${scaleYes})`;
-            noBtn.style.transform = `scale(${scaleNo})`;
-        }
-
-        // Event Listeners for NO button
-        noBtn.addEventListener('mouseover', dodgeNo);
-        noBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent click on mobile tap
-            dodgeNo();
-        });
-        noBtn.addEventListener('click', (e) => {
-            // Fallback for click if mouseover didn't catch (fast movement)
-            e.preventDefault();
-            dodgeNo();
-        });
-
-        // YES Button Click
-        yesBtn.addEventListener('click', () => {
-            // Hide question
-            questionContent.style.opacity = '0';
-            questionContent.style.pointerEvents = 'none';
-            questionContent.style.display = 'none';
-
-            // Show success
-            successContent.classList.add('visible');
-
-            // Start Confetti
-            startConfetti();
-        });
-
-        // Confetti Canvas Logic
-        const canvas = document.getElementById('confetti-canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        function startConfetti() {
-            // Create particles
-            for (let i = 0; i < 150; i++) {
-                particles.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height - canvas.height,
-                    vx: Math.random() * 4 - 2,
-                    vy: Math.random() * 4 + 2,
-                    color: `hsl(${Math.random() * 60 + 260}, 100%, 70%)`, // Purple/Pink Hue
-                    size: Math.random() * 8 + 4,
-                    rotation: Math.random() * 360,
-                    rotationSpeed: Math.random() * 10 - 5
-                });
+            // Nice sparkle effect
+            function createSparkles() {
+                for (let i = 0; i < 30; i++) {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.style.left = Math.random() * 100 + '%';
+                    sparkle.style.top = Math.random() * 100 + '%';
+                    sparkle.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                    sparkle.style.animationDelay = (Math.random() * 5) + 's';
+                    sparklesContainer.appendChild(sparkle);
+                }
             }
-            animate();
-        }
 
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            createHearts();
+            createSparkles();
 
-            let activeParticles = false;
+            // Dodge Logic
+            function dodgeNo() {
+                noAttempts++;
 
-            particles.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                p.rotation += p.rotationSpeed;
+                // Move NO button
+                const cardRect = card.getBoundingClientRect();
+                const btnRect = noBtn.getBoundingClientRect();
 
-                // Gravity/Drag simulation
-                p.vy += 0.05;
-                p.vx *= 0.99;
+                // Calculate random position within the card
+                const padding = 20;
 
-                if (p.y < canvas.height) activeParticles = true;
+                // Current position is static in flex, switch to absolute
+                noBtn.style.position = 'absolute';
 
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation * Math.PI / 180);
-                ctx.fillStyle = p.color;
-                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-                ctx.restore();
+                // Calculate boundaries relative to card content
+                const maxX = cardRect.width - btnRect.width - padding;
+                const maxY = cardRect.height - btnRect.height - padding;
 
-                // Reset if falls off (optional loop, but one burst is usually nicer)
-                // Uncomment to loop:
-                if (p.y > canvas.height) { p.y = -10; p.x = Math.random() * canvas.width; }
-                activeParticles = true; // Keep animating for loop
+                const randomX = Math.random() * maxX;
+                const randomY = Math.random() * maxY;
+
+                noBtn.style.left = `${randomX}px`;
+                noBtn.style.top = `${randomY}px`;
+
+                // Text Update
+                const textIndex = Math.min(noAttempts - 1, captions.length - 1);
+                captionText.innerText = captions[textIndex];
+                captionText.classList.add('visible');
+
+                // Resize Buttons
+                const scaleYes = 1 + (noAttempts * 0.1);
+                const scaleNo = Math.max(0.6, 1 - (noAttempts * 0.1));
+
+                yesBtn.style.transform = `scale(${scaleYes})`;
+                noBtn.style.transform = `scale(${scaleNo})`;
+            }
+
+            // Event Listeners for NO button
+            noBtn.addEventListener('mouseover', dodgeNo);
+            noBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent click on mobile tap
+                dodgeNo();
+            });
+            noBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                dodgeNo();
             });
 
-            if (activeParticles) requestAnimationFrame(animate);
-        }
+            // YES Button Click
+            yesBtn.addEventListener('click', () => {
+                // Celebration burst
+                triggerCelebration();
 
+                // Hide question
+                questionContent.style.opacity = '0';
+                questionContent.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    questionContent.style.display = 'none';
+
+                    // Show success
+                    successContent.classList.add('visible');
+                }, 500);
+            });
+
+            function triggerCelebration() {
+                const emojis = ['🎉', '💜', '😍', '✨', '🌸', '💘'];
+                const count = 50;
+
+                for (let i = 0; i < count; i++) {
+                    const el = document.createElement('div');
+                    el.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+                    el.className = 'celebration-emoji';
+                    el.style.left = Math.random() * 100 + 'vw';
+                    el.style.top = -10 + 'px';
+                    el.style.animationDuration = Math.random() * 3 + 2 + 's';
+                    document.body.appendChild(el);
+
+                    // Cleanup
+                    setTimeout(() => el.remove(), 5000);
+                }
+            }
+        });
     </script>
 </body>
 
