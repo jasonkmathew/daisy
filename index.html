@@ -1,22 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Will you be my Valentine? 💜</title>
-    
+
     <!-- Google Fonts: 'Outfit' for a modern, clean look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
         :root {
-            --primary-color: #8E24AA; /* Deep Purple */
-            --secondary-color: #D1C4E9; /* Light Lavender */
-            --bg-gradient-start: #fce4ec; /* Soft Pink */
-            --bg-gradient-end: #d1c4e9; /* Soft Lavender */
-            --text-color: #4A148C; /* Very Dark Purple */
+            --primary-color: #8E24AA;
+            /* Deep Purple */
+            --secondary-color: #D1C4E9;
+            /* Light Lavender */
+            --bg-gradient-start: #fce4ec;
+            /* Soft Pink */
+            --bg-gradient-end: #d1c4e9;
+            /* Soft Lavender */
+            --text-color: #4A148C;
+            /* Very Dark Purple */
             --white: #ffffff;
         }
 
@@ -31,7 +37,8 @@
             background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
             height: 100vh;
             width: 100vw;
-            overflow: hidden; /* Prevent scrolling */
+            overflow: hidden;
+            /* Prevent scrolling */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -70,10 +77,23 @@
         }
 
         @keyframes float {
-            0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 0.3; }
-            90% { opacity: 0.3; }
-            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+            0% {
+                transform: translateY(110vh) rotate(0deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 0.3;
+            }
+
+            90% {
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: translateY(-10vh) rotate(360deg);
+                opacity: 0;
+            }
         }
 
         /* Main Card */
@@ -116,7 +136,8 @@
             justify-content: center;
             gap: 20px;
             position: relative;
-            min-height: 60px; /* Space for buttons */
+            min-height: 60px;
+            /* Space for buttons */
         }
 
         button {
@@ -129,7 +150,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .btn-yes {
@@ -146,7 +167,8 @@
         .btn-no {
             background-color: #F3E5F5;
             color: var(--primary-color);
-            position: relative; /* Default position */
+            position: relative;
+            /* Default position */
             z-index: 1;
         }
 
@@ -197,8 +219,15 @@
 
         /* Animations */
         @keyframes popIn {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         /* Mobile specific */
@@ -206,19 +235,22 @@
             .card {
                 padding: 2rem;
             }
+
             h1 {
                 font-size: 2rem;
             }
+
             .question {
                 font-size: 1.3rem;
             }
         }
     </style>
 </head>
+
 <body>
 
     <canvas id="confetti-canvas"></canvas>
-    
+
     <div class="hearts-bg" id="hearts-bg">
         <!-- Hearts will be added via JS -->
     </div>
@@ -277,7 +309,7 @@
         // Background Hearts
         function createHearts() {
             const emojis = ['💜', '🌸', '✨', '🤍'];
-            for(let i=0; i<15; i++) {
+            for (let i = 0; i < 15; i++) {
                 const heart = document.createElement('div');
                 heart.className = 'heart';
                 heart.innerText = emojis[Math.floor(Math.random() * emojis.length)];
@@ -292,19 +324,19 @@
         // Dodge Logic
         function dodgeNo() {
             noAttempts++;
-            
+
             // Move NO button
             const cardRect = card.getBoundingClientRect();
             const btnRect = noBtn.getBoundingClientRect();
-            
+
             // Calculate random position within the card
             // Ensure interaction stays fun but usable
             // Padding from edges
-            const padding = 20; 
-            
+            const padding = 20;
+
             // Current position is static in flex, switch to absolute
             noBtn.style.position = 'absolute';
-            
+
             // Calculate boundaries relative to card content
             const maxX = cardRect.width - btnRect.width - padding;
             const maxY = cardRect.height - btnRect.height - padding;
@@ -323,7 +355,7 @@
             // Resize Buttons
             const scaleYes = 1 + (noAttempts * 0.1);
             const scaleNo = Math.max(0.6, 1 - (noAttempts * 0.1));
-            
+
             yesBtn.style.transform = `scale(${scaleYes})`;
             noBtn.style.transform = `scale(${scaleNo})`;
         }
@@ -335,7 +367,7 @@
             dodgeNo();
         });
         noBtn.addEventListener('click', (e) => {
-             // Fallback for click if mouseover didn't catch (fast movement)
+            // Fallback for click if mouseover didn't catch (fast movement)
             e.preventDefault();
             dodgeNo();
         });
@@ -349,7 +381,7 @@
 
             // Show success
             successContent.classList.add('visible');
-            
+
             // Start Confetti
             startConfetti();
         });
@@ -358,7 +390,7 @@
         const canvas = document.getElementById('confetti-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
-        
+
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -368,7 +400,7 @@
 
         function startConfetti() {
             // Create particles
-            for(let i=0; i<150; i++) {
+            for (let i = 0; i < 150; i++) {
                 particles.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height - canvas.height,
@@ -385,36 +417,37 @@
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             let activeParticles = false;
-            
+
             particles.forEach(p => {
                 p.x += p.vx;
                 p.y += p.vy;
                 p.rotation += p.rotationSpeed;
-                
+
                 // Gravity/Drag simulation
                 p.vy += 0.05;
                 p.vx *= 0.99;
 
-                if(p.y < canvas.height) activeParticles = true;
+                if (p.y < canvas.height) activeParticles = true;
 
                 ctx.save();
                 ctx.translate(p.x, p.y);
                 ctx.rotate(p.rotation * Math.PI / 180);
                 ctx.fillStyle = p.color;
-                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
                 ctx.restore();
-                
+
                 // Reset if falls off (optional loop, but one burst is usually nicer)
                 // Uncomment to loop:
                 if (p.y > canvas.height) { p.y = -10; p.x = Math.random() * canvas.width; }
                 activeParticles = true; // Keep animating for loop
             });
 
-            if(activeParticles) requestAnimationFrame(animate);
+            if (activeParticles) requestAnimationFrame(animate);
         }
 
     </script>
 </body>
+
 </html>
