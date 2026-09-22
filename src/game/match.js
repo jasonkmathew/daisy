@@ -407,24 +407,55 @@
       B.applyDamage(dmg, A);
       let kb = this.calcKB(B, dmg, h.bkb, h.kbg, h.fkb);
       if (B.state === 'crouch') kb *= 0.85;
+      let linkHit = false;
+      // Mid-combo links (hits that can still become a named combo) keep the
+      // opponent close so the finisher can connect.
+      if (!isProj && A.move && !A.move.comboMove && A.chainIds && A.chainIds.length >= 2 && A.def.combos) {
+        const seq = A.chainSeq;
+        if (Object.keys(A.def.combos).some((k) => k.length > seq.length && k.startsWith(seq))) {
+          kb = Math.min(kb, 42);
+          linkHit = true;
+        }
+      }
       const lag = Math.floor(SB.clamp((dmg * 0.38 + 5) * (h.hl || 1), 3, 24));
-      B.launch(kb, h.ang, dirX, A, lag);
+      // Link hits pop the target gently upward so they stay in front of you.
+      B.launch(kb, linkHit ? 78 : h.ang, dirX, A, lag);
+      if (linkHit) B.hitstun = Math.max(B.hitstun, 22);
+      else if (!isProj && A.move && A.chainIds && A.chainIds.length === 1 && A.moveBtn === 'Q' && kb < 60) B.hitstun = Math.max(B.hitstun, 14);
       if (h.drag) B.pendingKB.drag = A;
       B.flash = 8;
       B.hitShake = lag;
-      if (!isProj) A.hitlag = lag;
+      if (!isProj) {
+        A.hitlag = lag;
+        A.moveHit = true;
+      }
 
       const strength = SB.clamp(kb / 120, 0.2, 2);
       this.fx.hitSpark(hx, hy, strength, color, kind);
       SB.audio.play('hit', strength, kind === 'kick' ? 'punch' : kind);
       if (SB.settings.damageNumbers && dmg >= 1) this.fx.floatText(hx, hy - 30, Math.round(dmg) + '%', '#ffffff', 16 + Math.min(14, dmg));
       if (kb > 90) this.shake(Math.min(18, kb / 14));
-      if (kb > 160 && B.damage > 70) {
+      if (h.finisher) {
+        // Named combo finishers land with extra impact.
+        this.freeze = Math.max(this.freeze, 8);
+        this.punch = 0.12;
+        this.flash(0.3);
+        this.shake(14);
+      } else if (kb > 160 && B.damage > 70) {
         // "Smash" hit: brief freeze + zoom punch for a big launch.
         this.freeze = 6;
         this.punch = 0.1;
         this.flash(0.35);
       }
+    }
+
+    // A named QWER combo was performed.
+    comboCall(f, name) {
+      f.comboShow = Object.assign(f.comboShow || { hits: 0, dmg: 0 }, { name, t: 130 });
+      this.fx.floatText(f.x, f.y - f.h - 46, name + '!', f.pal.glow, 30);
+      this.fx.ring(f.x, f.y - f.h / 2, f.pal.glow, 70);
+      f.stats.combos = (f.stats.combos || 0) + 1;
+      SB.audio.play('power');
     }
 
     lockHit(A, B, dmg, kind) {

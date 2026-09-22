@@ -188,6 +188,7 @@
     const y = H - 104;
     for (const f of m.fighters) {
       drawPanel(ctx, f, x, y, pw, m);
+      drawCombo(ctx, f, x + pw / 2, y - 14);
       x += pw + gap;
     }
 
@@ -200,11 +201,17 @@
     }
     if (m.training) {
       text(ctx, 'TRAINING', 24, 40, 26, '#8ff8ff', 'left');
-      text(ctx, 'R: reset   Esc: pause', 24, 64, 15, '#dfe7ff', 'left', '#111', 700);
-      for (const f of m.fighters) {
-        if (f.combo > 1 && f.comboBy && (f.hitstun > 0 || f.state === 'grabbed') ) {
-          text(ctx, f.combo + ' HIT COMBO', W - 30, 60, 30, '#ffe066', 'right');
+      text(ctx, 'Backspace: reset   Esc: pause', 24, 64, 15, '#dfe7ff', 'left', '#111', 700);
+      // Combo cheat sheet for the first player's fighter.
+      const me = m.fighters[0];
+      if (me && me.def.combos) {
+        let yy = 40;
+        text(ctx, 'COMBOS (land each hit)', W - 24, yy, 16, '#ffe066', 'right', '#111', 900);
+        for (const seq in me.def.combos) {
+          yy += 24;
+          text(ctx, seq.split('').join(' ') + '   ' + me.def.combos[seq].name, W - 24, yy, 15, '#ffffff', 'right', '#111', 800);
         }
+        text(ctx, 'Q light  W heavy  E special', W - 24, yy + 24, 13, '#bfc7ff', 'right', '#111', 700);
       }
     }
 
@@ -239,6 +246,25 @@
       banner(ctx, a.text, W / 2, H * 0.28 + 72, 54, '#ffffff', a.color);
       ctx.restore();
     }
+  }
+
+  // Combo counter floating above the attacker's HUD panel.
+  function drawCombo(ctx, f, cx, y) {
+    const c = f.comboShow;
+    if (!c || (!c.name && c.hits < 2)) return;
+    const a = Math.min(1, c.t / 20);
+    const pop = c.t > 100 ? 1 + (c.t - 100) * 0.02 : 1;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(cx, y);
+    ctx.scale(pop, pop);
+    if (c.name) text(ctx, c.name + '!', 0, c.hits >= 2 ? -34 : -4, 18, f.pal.glow, 'center', '#140d20', 900, 5);
+    if (c.hits >= 2) {
+      ctx.font = `italic 900 30px ${FONT}`;
+      text(ctx, c.hits + ' HITS', -6, -4, 30, '#ffe066', 'center', '#140d20', 900, 6);
+      text(ctx, Math.round(c.dmg) + '%', 70, -4, 16, '#ffffff', 'left', '#140d20', 900, 4);
+    }
+    ctx.restore();
   }
 
   function drawPanel(ctx, f, x, y, w, m) {

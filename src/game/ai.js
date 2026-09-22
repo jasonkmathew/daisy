@@ -272,6 +272,19 @@
     duringMove(t, info) {
       const f = this.f;
       const m = f.move;
+      // Continue a QWER combo when the current move connected.
+      if (f.moveHit && this.level >= 2 && f.def.combos && this.comboFor !== m) {
+        this.comboFor = m;
+        const seq = f.chainSeq;
+        const routes = Object.keys(f.def.combos).filter((r) => r.startsWith(seq) && r.length > seq.length);
+        if (routes.length && this.rnd() < 0.1 + this.level * 0.1) {
+          const next = SB.pick(routes)[seq.length];
+          this.sx = 0;
+          this.sy = 0;
+          this.press(next === 'Q' ? 'attack' : next === 'W' ? 'smash' : 'special', 2);
+          return;
+        }
+      }
       // Hold smash charges a little (longer at high level vs. distant targets).
       if (m.charge && f.charging) {
         const want = Math.abs(t.x - f.x) > 70 ? 20 + this.level * 3 : 4;

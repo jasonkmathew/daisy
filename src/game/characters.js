@@ -265,6 +265,65 @@
     anim: [[0, { aS: 2.6, aE: 0.3, wpn: 0, aH: 1.2, aK: 2.0, bH: 1.0, bK: 2.0 }], [12, { aS: 0, aE: 0, wpn: 0, lean: 0, aH: 0.4, aK: 0.6 }, 'out'], [22, {}], [40, AIRS]],
     hit: [hb(12, 18, 'wtip', 15, 14, 275, 25, 80, S({ hl: 1.3 })), hb(12, 18, 'wmid', 13, 11, 60, 25, 70, S())],
   };
+  aria.moves.cLauncher = {
+    frames: 30, trail: 'wtip', swing: 4, comboMove: true,
+    anim: [[0, { by: 14, lean: 0.3, aS: 0.4, aE: 1.0, wpn: -0.6 }], [5, { by: -6, lean: -0.12, aS: 2.95, aE: 0.05, wpn: 0.05, sy: 1.06, fa: 16 }, 'out'], [13, {}], [30, idle(SI)]],
+    motion: [[0, 7, 5, null, 'ground']],
+    hit: sw(3, 10, 18, 7, 88, 72, 30).concat([hb(3, 8, 'body', 22, 6, 88, 72, 30, S())]),
+  };
+  aria.moves.cFlurry = {
+    frames: 44, trail: 'wtip', comboMove: true,
+    anim: [
+      [0, { aS: 2.4, aE: 0.3, wpn: 0.2, lean: 0.1 }],
+      [4, { aS: 0.7, aE: 0.1, wpn: 0, lean: 0.35, fa: 18 }, 'linear'],
+      [8, { aS: 2.4, aE: 0.2, wpn: 0.2 }, 'linear'],
+      [12, { aS: 0.7, aE: 0.1, wpn: 0 }, 'linear'],
+      [16, { aS: 2.4, aE: 0.2, wpn: 0.2 }, 'linear'],
+      [20, { aS: 0.9, aE: 1.6, wpn: -1.2, lean: -0.1 }],
+      [25, { aS: 1.57, aE: 0, wpn: 0, lean: 0.55, fa: 28, fb: -22 }, 'out'],
+      [33, {}],
+      [44, idle(SI)],
+    ],
+    tick: (f, fr) => {
+      if (fr % 4 === 0 && fr < 20) SB.audio.play('swing', 0.4);
+    },
+    hit: [
+      hb(3, 5, 'wtip', 15, 1.6, 80, 0, 0, S({ grp: 0, fkb: 22, drag: true })),
+      hb(7, 9, 'wtip', 15, 1.6, 80, 0, 0, S({ grp: 1, fkb: 22, drag: true })),
+      hb(11, 13, 'wtip', 15, 1.6, 80, 0, 0, S({ grp: 2, fkb: 22, drag: true })),
+      hb(15, 17, 'wtip', 15, 1.6, 80, 0, 0, S({ grp: 3, fkb: 22, drag: true })),
+      hb(25, 29, 'wtip', 18, 6, 40, 60, 80, S({ grp: 4 })),
+      hb(25, 29, 'wmid', 15, 5, 40, 60, 80, S({ grp: 4 })),
+    ],
+  };
+  aria.moves.cFinisher = {
+    frames: 52, trail: 'wtip', comboMove: true,
+    anim: [
+      [0, { aS: 0.9, aE: 1.6, wpn: -1.2, lean: -0.2, by: 10 }],
+      [8, { aS: 1.57, aE: 0, wpn: 0, lean: 0.5, fa: 26, fb: -22, by: 4 }, 'out'],
+      [12, { aS: 3.2, aE: 0.3, wpn: 0.4, lean: -0.2 }, 'out'],
+      [17, { aS: 0.5, aE: 0.05, wpn: -0.1, lean: 0.6, fa: 30, fb: -24 }, 'out'],
+      [30, {}],
+      [52, idle(SI)],
+    ],
+    motion: [[6, 18, 8, null]],
+    tick: (f, fr) => {
+      if (fr === 8 || fr === 12 || fr === 17) SB.audio.play('swing', 0.9);
+    },
+    ev: {
+      17: (f, m) => {
+        const t = f.jointWorld('wtip');
+        m.fx.add({ type: 'slash', x: t.x, y: t.y, size: 140, life: 14, color: f.pal.glow, rot: 0.6 * f.facing }, true);
+        m.shake(6);
+      },
+    },
+    hit: [
+      hb(8, 11, 'wtip', 16, 4, 80, 0, 0, S({ grp: 0, fkb: 40, drag: true })),
+      hb(12, 15, 'wtip', 16, 4, 80, 0, 0, S({ grp: 1, fkb: 40, drag: true })),
+      hb(17, 21, 'wtip', 22, 13, 40, 85, 92, S({ grp: 2, hl: 1.8, finisher: true })),
+      hb(17, 21, 'wmid', 19, 11, 40, 85, 92, S({ grp: 2, finisher: true })),
+    ],
+  };
   aria.moves.nspec = {
     frames: 42, special: true, trail: 'wtip', swing: 10,
     anim: [[0, { aS: 2.5, aE: 0.5, wpn: 0.4, lean: -0.15 }], [12, { aS: 1.0, aE: 0, wpn: 0, lean: 0.35, fa: 18 }, 'out'], [22, {}], [42, idle(SI)]],
@@ -596,6 +655,87 @@
       },
     },
   };
+
+  // ---------------------------------------------------- QWER combos
+  // Q = light attack, W = heavy (smash), E = special. A move that lands can
+  // be cancelled into the next button; these exact strings are named combos.
+  const combos = (a, b, c) => ({
+    QQW: { id: 'cLauncher', name: a },
+    QWE: { id: 'cFinisher', name: b },
+    QQQQ: { id: 'cFlurry', name: c },
+  });
+  blaze.combos = combos('RISING FLAME', 'INFERNO KNUCKLE', 'FLAME FLURRY');
+  aria.combos = combos('SKY CUTTER', 'AZURE TEMPEST', 'BLADE STORM');
+  titan.combos = combos('BOULDER UPPER', 'AVALANCHE', 'ROCK BARRAGE');
+  volt.combos = combos('STATIC LIFT', 'THUNDER RUSH', 'SPARK FLURRY');
+
+  const withKind = (m, kind, extra) => Object.assign({}, m, extra || {}, { hit: m.hit.map((h) => Object.assign({}, h, { kind })) });
+  blaze.moves.cLauncher = withKind(D.cLauncher, 'fire');
+  blaze.moves.cFlurry = withKind(D.cFlurry, 'fire');
+  blaze.moves.cFinisher = withKind(D.cFinisher, 'fire', {
+    tick: (f, fr) => {
+      if (fr < 8 && fr % 2 === 0) f.fxCharge();
+      if (fr >= 6 && fr < 16) f.fxTrail('fire');
+    },
+    ev: {
+      10: (f, m) => {
+        const h = f.jointWorld('haA');
+        m.fx.explosion(h.x + f.facing * 20, h.y, 80, '#ff6b1a');
+        m.shake(10);
+        SB.audio.play('explosion', 1);
+      },
+    },
+  });
+  volt.moves.cLauncher = withKind(D.cLauncher, 'elec');
+  volt.moves.cFlurry = withKind(D.cFlurry, 'elec');
+  volt.moves.cFinisher = withKind(D.cFinisher, 'elec', {
+    inv: [4, 9],
+    tick: (f, fr, m) => {
+      if (fr < 4 && fr % 2 === 0) f.fxCharge();
+      if (fr === 4) {
+        // Blink right next to the nearest opponent in front.
+        let best = null;
+        for (const o of m.fighters) {
+          if (o === f || !o.isAlive()) continue;
+          const d = (o.x - f.x) * f.facing;
+          if (d > -20 && d < 320 && Math.abs(o.y - f.y) < 160 && (!best || d < (best.x - f.x) * f.facing)) best = o;
+        }
+        f.blinkTo = best ? best.x - f.facing * (f.w / 2 + best.w / 2 + 6) : f.x + f.facing * 90;
+      }
+      if (fr >= 4 && fr < 8) {
+        f.vx = (f.blinkTo - f.x) / Math.max(1, 8 - fr);
+        f.invisible = true;
+        f.fxTrail('elec');
+      } else if (fr === 8) f.vx = f.facing * 2;
+    },
+    motion: null,
+    ev: {
+      10: (f, m) => {
+        const h = f.jointWorld('haA');
+        m.spawnProjectile(f, 'bolt', { x: h.x + f.facing * 20, y: m.stage.groundBelow(h.x, f.y - 20), top: m.stage.blast.top, w: 40, life: 12, dmg: 6, ang: 80, bkb: 50, kbg: 60, kind: 'elec', color: f.pal.glow });
+        m.shake(8);
+        SB.audio.play('hit', 1, 'elec');
+      },
+    },
+  });
+  titan.moves.cFlurry = D.cFlurry;
+  titan.moves.cFinisher = Object.assign({}, D.cFinisher, {
+    // Overhead double-fist slam that sends a shockwave both ways.
+    anim: [
+      [0, { lean: -0.35, aS: 2.9, aE: 0.5, bS: 2.8, bE: 0.5, by: 6 }],
+      [9, { lean: -0.45, aS: 3.3, bS: 3.2, by: 8 }],
+      [12, { lean: 0.75, aS: 1.2, aE: 0, bS: 1.1, bE: 0.1, by: 22, fa: 30, fb: -24 }, 'out'],
+      [30, {}],
+      [50, IDLE],
+    ],
+    motion: [[6, 12, 7, null]],
+    ev: {
+      12: (f, m) => {
+        f.quakeShock(m);
+      },
+    },
+    hit: [hb(12, 17, 'haA', 28, 16, 70, 85, 88, { hl: 1.9, finisher: true }), hb(12, 17, 'elA', 22, 13, 70, 85, 88, { finisher: true })],
+  });
 
   const ROSTER = [blaze, aria, titan, volt];
 

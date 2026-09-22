@@ -135,7 +135,7 @@
       });
       logo(ctx, W / 2, 210 + Math.sin(t * 0.03) * 6, 1, t);
       if (Math.floor(t / 30) % 2 === 0 || t < 20) T(ctx, 'PRESS ENTER OR CLICK TO START', W / 2, 395, 24, '#ffffff');
-      T(ctx, 'A platform fighter  •  4 fighters  •  4 stages  •  up to 4 players', W / 2, 428, 15, '#cfd6ff', 'center', null, 600);
+      T(ctx, 'QWER combo platform fighter  •  Arrows move  •  Shift crouch  •  4 fighters  •  4 stages', W / 2, 428, 15, '#cfd6ff', 'center', null, 600);
     }
   }
 
@@ -149,11 +149,12 @@
       const items = [
         ['VERSUS', 'Up to 4 players or CPUs', () => SB.app.go(new CharSelect(false)), '#ff5a5a'],
         ['TRAINING', 'Practise combos on a dummy', () => SB.app.go(new CharSelect(true)), '#3ddc84'],
+        ['COMBOS', 'QWER combo list for every fighter', () => SB.app.go(new CombosScreen()), '#ff8cf0'],
         ['CONTROLS', 'Keyboard & gamepad layouts', () => SB.app.go(new ControlsScreen()), '#3d8bff'],
         ['SETTINGS', 'Audio, video & gameplay', () => SB.app.go(new SettingsScreen()), '#ffd23f'],
       ];
       if (SB.isElectron) items.push(['QUIT', 'Close the game', () => window.close(), '#999999']);
-      items.forEach(([l, s, fn, c], i) => this.menu.add(button(bx, 190 + i * 88, 360, 72, l, fn, { sub: s, size: 28, color: c })));
+      items.forEach(([l, s, fn, c], i) => this.menu.add(button(bx, 150 + i * 84, 360, 70, l, fn, { sub: s, size: 28, color: c })));
     }
     update() {
       this.t++;
@@ -503,7 +504,7 @@
       T(ctx, st.name, W / 2, 340, 30, '#ffcc33');
       T(ctx, st.blurb, W / 2, 368, 16, '#dfe4ff', 'center', null, 600);
       if (!this.training) T(ctx, 'RULES', W / 2, 408, 18, '#ffffff');
-      else T(ctx, 'Training: unlimited stocks, combo counter, press R to reset positions.', W / 2, 440, 18, '#8ff8ff');
+      else T(ctx, 'Training: unlimited stocks, combo counter, press Backspace to reset positions.', W / 2, 440, 18, '#8ff8ff');
       this.menu.draw(ctx);
     }
   }
@@ -526,34 +527,94 @@
     }
     draw(ctx) {
       menuBackground(ctx, this.t);
-      title(ctx, 'CONTROLS', 'Tap a direction and attack together for a SMASH attack — hold attack to charge it');
+      title(ctx, 'CONTROLS', 'Arrow keys to move • Q W E R to fight • Shift to crouch • Space to shield');
       const cols = [
-        ['KEYBOARD A', [['Move', 'W A S D'], ['Jump', 'Space (or W)'], ['Attack', 'J'], ['Special', 'K'], ['Shield / Dodge', 'L'], ['Grab', 'U'], ['Smash attack', 'I + direction']]],
-        ['KEYBOARD B', [['Move', 'Arrow keys'], ['Jump', 'Num 0 / \' (or Up)'], ['Attack', 'Num 1 / .'], ['Special', 'Num 2 / /'], ['Shield / Dodge', 'Num 3 / R-Shift'], ['Grab', 'Num 4 / ;'], ['Smash attack', 'Num 5 / ,']]],
-        ['GAMEPAD', [['Move', 'Left stick / D-pad'], ['Jump', 'X / Y'], ['Attack', 'A'], ['Special', 'B'], ['Shield / Dodge', 'LB / LT / RT'], ['Grab', 'RB'], ['Smash / aerials', 'Right stick']]],
+        ['KEYBOARD A', [['Move', 'Arrow keys'], ['Jump', 'Up arrow'], ['Crouch', 'Shift'], ['Light attack', 'Q'], ['Heavy / smash', 'W'], ['Special', 'E'], ['Grab', 'R'], ['Shield / dodge', 'Space']]],
+        ['KEYBOARD B', [['Move', 'Num 4 5 6 / J K L'], ['Jump', 'Num 8 / I'], ['Crouch', 'Num 2 / M'], ['Light attack', 'Num 7 / U'], ['Heavy / smash', 'Num 9 / O'], ['Special', 'Num 1 / P'], ['Grab', 'Num 3 / ['], ['Shield / dodge', 'Num 0 / N']]],
+        ['GAMEPAD', [['Move', 'Left stick / D-pad'], ['Jump', 'X'], ['Crouch', 'Stick down / L3'], ['Light attack', 'A'], ['Heavy / smash', 'Y / right stick'], ['Special', 'B'], ['Grab', 'RB'], ['Shield / dodge', 'LB / LT / RT']]],
       ];
       cols.forEach(([name, rows], i) => {
         const x = 70 + i * 390;
-        const y = 130;
+        const y = 118;
         ctx.fillStyle = 'rgba(15,10,40,0.8)';
-        SB.roundRect(ctx, x, y, 360, 330, 14);
+        SB.roundRect(ctx, x, y, 360, 356, 14);
         ctx.fill();
         ctx.strokeStyle = PCOL[i + 1];
         ctx.lineWidth = 2;
         ctx.stroke();
         T(ctx, name, x + 180, y + 36, 24, PCOL[i + 1]);
         rows.forEach(([a, b], k) => {
-          T(ctx, a, x + 22, y + 78 + k * 36, 16, '#cfd6ff', 'left', null, 700);
-          T(ctx, b, x + 338, y + 78 + k * 36, 16, '#ffffff', 'right', null, 900);
+          T(ctx, a, x + 22, y + 76 + k * 34, 16, '#cfd6ff', 'left', null, 700);
+          T(ctx, b, x + 338, y + 76 + k * 34, 16, '#ffffff', 'right', null, 900);
         });
       });
       const tips = [
-        'Special + direction = 4 different special moves (up special recovers!).  Shield + direction = roll, shield + down = spot dodge.',
-        'Shield in the air = air dodge.  Press shield just before hitting the ground while tumbling to TECH.  Flick down in the air to fast fall.',
-        'Grab, then push a direction to throw.  Hang on ledges: toward/up = climb, jump, attack or shield for other get-ups.',
-        'Break the rainbow SMASH ORB and press special for your FINAL SMASH!   Esc / Start = pause.',
+        'COMBOS: when a hit lands, press the next button to chain: Q (light) → W (heavy) → E (special). See the COMBOS menu for named finishers.',
+        'Direction + Q = tilt / aerial attacks.  Direction + W = smash attacks (hold W to charge).  Direction + E = four specials (Up + E recovers!).',
+        'Space + direction = roll, Space in the air = air dodge, tap Space just before landing while tumbling to TECH.  Shift or Down in the air = fast fall.',
+        'R grabs, then a direction throws.  Break the rainbow SMASH ORB and press E for your FINAL SMASH!   Esc = pause.',
       ];
-      tips.forEach((s, i) => T(ctx, s, W / 2, 500 + i * 30, 15, '#e6e9ff', 'center', null, 600));
+      tips.forEach((s, i) => T(ctx, s, W / 2, 506 + i * 30, 14, i === 0 ? '#ffe066' : '#e6e9ff', 'center', null, 700));
+      this.menu.draw(ctx);
+    }
+  }
+
+  // ============================================================== COMBOS
+  class CombosScreen {
+    enter() {
+      this.t = 0;
+      this.menu = new Menu();
+      this.menu.add(button(40, 654, 180, 50, 'BACK', () => this.back(), { color: '#999999' }));
+      this.menu.add(button(W - 300, 654, 260, 50, 'TRY IN TRAINING', () => SB.app.go(new CharSelect(true)), { color: '#3ddc84' }));
+    }
+    back() {
+      SB.audio.play('menuBack');
+      SB.app.go(new MainMenu());
+    }
+    update() {
+      this.t++;
+      this.menu.update();
+      if (SB.input.menu.back) this.back();
+    }
+    draw(ctx) {
+      menuBackground(ctx, this.t);
+      title(ctx, 'QWER COMBOS', 'Land a hit, then press the next key before the move ends. Q light • W heavy • E special');
+      const keyCap = (x, y, k) => {
+        const cols = { Q: '#3d8bff', W: '#ff5a5a', E: '#ffd23f', R: '#3ddc84' };
+        ctx.fillStyle = cols[k];
+        SB.roundRect(ctx, x, y, 30, 30, 6);
+        ctx.fill();
+        ctx.strokeStyle = '#140d20';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        T(ctx, k, x + 15, y + 22, 18, '#140d20', 'center', null, 900);
+      };
+      SB.ROSTER.forEach((c, i) => {
+        const x = 30 + i * 308;
+        const y = 116;
+        const pal = c.palettes[0];
+        const g = ctx.createLinearGradient(0, y, 0, y + 400);
+        g.addColorStop(0, SB.rgba(SB.shade(pal.main, 0.1), 0.85));
+        g.addColorStop(1, 'rgba(10,8,25,0.92)');
+        SB.roundRect(ctx, x, y, 290, 400, 16);
+        ctx.fillStyle = g;
+        ctx.fill();
+        ctx.strokeStyle = pal.glow;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        SB.FighterRenderer.drawPreview(ctx, c, 0, x + 70, y + 130, c.id === 'titan' ? 0.9 : 1.1, this.t + i * 20, 'idle', 'combo' + c.id);
+        T(ctx, c.name, x + 270, y + 44, 28, '#ffffff', 'right');
+        T(ctx, c.title, x + 270, y + 66, 13, pal.glow, 'right', null, 700);
+        let yy = y + 160;
+        for (const seq in c.combos) {
+          const cb = c.combos[seq];
+          seq.split('').forEach((k, j) => keyCap(x + 18 + j * 36, yy, k));
+          T(ctx, cb.name, x + 18, yy + 54, 17, pal.glow, 'left', '#111', 900);
+          yy += 76;
+        }
+        T(ctx, 'Chain any hit: Q → W → E', x + 18, y + 386, 13, '#cfd6ff', 'left', null, 700);
+      });
+      T(ctx, 'Combos work on the ground and in the air. The same move can only be used once per chain. Finishers hit extra hard!', W / 2, 560, 15, '#e6e9ff', 'center', null, 700);
       this.menu.draw(ctx);
     }
   }
@@ -585,7 +646,7 @@
       vol('SOUND EFFECTS', 'sfx');
       tog('SCREEN SHAKE', 'shake', true);
       tog('DAMAGE NUMBERS', 'damageNumbers', true);
-      tog('TAP JUMP (UP = JUMP)', 'tapJump', true);
+      tog('GAMEPAD TAP JUMP', 'tapJump', true);
       tog('SHOW HITBOXES', 'hitboxes', false);
       m.add(button(x, y + 6, 440, 50, 'TOGGLE FULLSCREEN', () => SB.toggleFullscreen(), { color: '#3d8bff' }));
       m.add(button(40, 654, 180, 50, 'BACK', () => this.back(), { color: '#999999' }));
@@ -629,7 +690,7 @@
     update() {
       this.t++;
       const M = SB.input.menu;
-      const pauseKey = SB.input.keyPressed('Escape') || SB.input.keyPressed('KeyP') || (M.start && !SB.input.keyPressed('Enter'));
+      const pauseKey = SB.input.keyPressed('Escape') || (M.start && !SB.input.keyPressed('Enter'));
       if (this.paused) {
         this.pmenu.update();
         if (pauseKey || M.back) {
@@ -644,7 +705,7 @@
         SB.audio.play('menuSelect');
         return;
       }
-      if (this.match.training && SB.input.keyPressed('KeyR')) {
+      if (this.match.training && SB.input.keyPressed('Backspace')) {
         const cfg2 = this.matchCfg;
         this.match = new SB.Match(cfg2);
         this.match.phase = 'play';
@@ -759,6 +820,6 @@
     }
   }
 
-  SB.Screens = { TitleScreen, MainMenu, CharSelect, StageSelect, ControlsScreen, SettingsScreen, GameScreen, ResultsScreen, buildMatchCfg, cfg };
+  SB.Screens = { TitleScreen, MainMenu, CombosScreen, CharSelect, StageSelect, ControlsScreen, SettingsScreen, GameScreen, ResultsScreen, buildMatchCfg, cfg };
   void FONT;
 })();

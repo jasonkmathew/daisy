@@ -10,34 +10,35 @@
     if (!keys.has(e.code)) pressedThisFrame.add(e.code);
     keys.add(e.code);
     // Keep arrows / space from scrolling the page and Tab from leaving the canvas.
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'].includes(e.code)) e.preventDefault();
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab', 'ShiftLeft', 'ShiftRight'].includes(e.code)) e.preventDefault();
     if (SB.audio) SB.audio.unlock();
   });
   window.addEventListener('keyup', (e) => keys.delete(e.code));
   window.addEventListener('blur', () => keys.clear());
 
   // Keyboard layouts. Each action can have several keys.
+  //   Q = light attack   W = heavy / smash attack   E = special   R = grab
+  //   Arrows = move (Up jumps)   Shift = crouch   Space = shield / dodge
   const LAYOUTS = {
     kb1: {
       name: 'Keyboard A',
-      left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'],
-      attack: ['KeyJ'], special: ['KeyK'], shield: ['KeyL'], jump: ['Space'],
-      grab: ['KeyU'], smash: ['KeyI'],
+      left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'],
+      attack: ['KeyQ'], smash: ['KeyW'], special: ['KeyE'], grab: ['KeyR'],
+      shield: ['Space'], crouch: ['ShiftLeft', 'ShiftRight'], jump: [],
     },
+    // Second keyboard player: numpad (or I J K L + U O P [ on laptops).
     kb2: {
       name: 'Keyboard B',
-      left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'],
-      attack: ['Numpad1', 'Period'], special: ['Numpad2', 'Slash'], shield: ['Numpad3', 'ShiftRight'],
-      jump: ['Numpad0', 'Quote'], grab: ['Numpad4', 'Semicolon'], smash: ['Numpad5', 'Comma'],
+      left: ['Numpad4', 'KeyJ'], right: ['Numpad6', 'KeyL'], up: ['Numpad8', 'KeyI'], down: ['Numpad5', 'KeyK'],
+      attack: ['Numpad7', 'KeyU'], smash: ['Numpad9', 'KeyO'], special: ['Numpad1', 'KeyP'], grab: ['Numpad3', 'BracketLeft'],
+      shield: ['Numpad0', 'KeyN'], crouch: ['Numpad2', 'KeyM'], jump: [],
     },
   };
 
-  // A key counts as down if it is held, or was tapped since the last tick
-  // (so very quick taps between two frames are never lost).
   const anyDown = (list) => list.some((k) => keys.has(k) || pressedThisFrame.has(k));
 
   function blankState() {
-    return { x: 0, y: 0, cx: 0, cy: 0, attack: false, special: false, jump: false, shield: false, grab: false, smash: false };
+    return { x: 0, y: 0, cx: 0, cy: 0, attack: false, special: false, jump: false, shield: false, grab: false, smash: false, crouch: false };
   }
 
   function readKeyboard(layoutId) {
@@ -51,6 +52,7 @@
     s.jump = anyDown(L.jump);
     s.grab = anyDown(L.grab);
     s.smash = anyDown(L.smash);
+    s.crouch = anyDown(L.crouch);
     return s;
   }
 
@@ -80,9 +82,11 @@
     s.cy = dz(p.axes[3] || 0);
     s.attack = btn(p, 0);
     s.special = btn(p, 1);
-    s.jump = btn(p, 2) || btn(p, 3);
+    s.jump = btn(p, 2);
+    s.smash = btn(p, 3);
     s.grab = btn(p, 5);
     s.shield = btn(p, 4) || btn(p, 6) || btn(p, 7);
+    s.crouch = btn(p, 10);
     return s;
   }
 
@@ -135,12 +139,12 @@
   function pollMenu() {
     const pads = getPads();
     const cur = {
-      up: anyDown(['ArrowUp', 'KeyW']),
-      down: anyDown(['ArrowDown', 'KeyS']),
-      left: anyDown(['ArrowLeft', 'KeyA']),
-      right: anyDown(['ArrowRight', 'KeyD']),
-      confirm: anyDown(['Enter', 'KeyJ', 'NumpadEnter', 'Numpad1']),
-      back: anyDown(['Escape', 'Backspace', 'KeyK', 'Numpad2']),
+      up: anyDown(['ArrowUp', 'Numpad8']),
+      down: anyDown(['ArrowDown', 'Numpad5']),
+      left: anyDown(['ArrowLeft', 'Numpad4']),
+      right: anyDown(['ArrowRight', 'Numpad6']),
+      confirm: anyDown(['Enter', 'Space', 'KeyQ', 'NumpadEnter']),
+      back: anyDown(['Escape', 'Backspace']),
       start: anyDown(['Escape', 'Enter']),
     };
     for (const p of pads) {

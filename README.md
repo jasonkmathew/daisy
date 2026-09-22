@@ -1,10 +1,13 @@
 # Brawl Legends
 
-A Smash-style 2D platform fighter for the desktop. Knock your opponents off the
-stage: the more damage they take, the farther they fly.
+A Smash-style 2D platform fighter for the desktop, built around **QWER combos**.
+Move with the arrow keys, crouch with Shift, and chain Q, W, E and R attacks into
+named combos. Knock your opponents off the stage: the more damage they take, the
+farther they fly.
 
 ![Title](docs/title.png)
 ![Gameplay](docs/gameplay.png)
+![Combos](docs/combos.png)
 
 ## Features
 
@@ -49,25 +52,48 @@ Press **F11** for fullscreen.
 
 ## Controls
 
-| Action          | Keyboard A      | Keyboard B                 | Gamepad            |
-| --------------- | --------------- | -------------------------- | ------------------ |
-| Move            | W A S D         | Arrow keys                 | Left stick / D-pad |
-| Jump            | Space (or W)    | Num 0 / `'` (or Up)        | X / Y              |
-| Attack          | J               | Num 1 / `.`                | A                  |
-| Special         | K               | Num 2 / `/`                | B                  |
-| Shield / dodge  | L               | Num 3 / Right Shift        | LB / LT / RT       |
-| Grab            | U               | Num 4 / `;`                | RB                 |
-| Smash attack    | I + direction   | Num 5 / `,` + direction    | Right stick        |
-| Pause           | Esc             | Esc                        | Start              |
+| Action           | Keyboard A    | Keyboard B            | Gamepad            |
+| ---------------- | ------------- | --------------------- | ------------------ |
+| Move             | Arrow keys    | Num 4 5 6 / J K L     | Left stick / D-pad |
+| Jump             | Up arrow      | Num 8 / I             | X                  |
+| Crouch           | Shift         | Num 2 / M             | Stick down / L3    |
+| **Q** Light attack | Q           | Num 7 / U             | A                  |
+| **W** Heavy / smash | W          | Num 9 / O             | Y / right stick    |
+| **E** Special    | E             | Num 1 / P             | B                  |
+| **R** Grab       | R             | Num 3 / `[`           | RB                 |
+| Shield / dodge   | Space         | Num 0 / N             | LB / LT / RT       |
+| Pause            | Esc           | Esc                   | Start              |
 
-- Attack + direction = tilt attacks; in the air = aerials.
-- Special + direction = four different specials. **Up special** is your recovery.
-- Hold the attack (or smash) button to charge a smash attack.
-- Shield + left/right = roll, shield + down = spot dodge, shield in the air = air dodge.
-- Press shield just before hitting the ground while tumbling to **tech**.
-- Grab, then push a direction to throw (attack to pummel).
-- On a ledge: toward/up = climb, jump, attack or shield for other get-ups.
-- Break the Smash Orb, then press special for your Final Smash.
+- Direction + Q = tilt attacks (in the air: aerials). Shift + Q = low sweep.
+- Direction + W = smash attacks (hold W to charge).
+- Direction + E = four different specials. **Up + E** is your recovery.
+- Space + left/right = roll, Space in the air = air dodge, tap Space just before
+  landing while tumbling to **tech**. Shift or Down in the air = fast fall.
+- R grabs, then a direction throws (Q to pummel).
+- Break the Smash Orb, then press E for your Final Smash.
+
+## QWER combos
+
+When a hit **lands**, press the next key to cancel into another attack. Chains go
+from light to heavy to special: **Q → W → E**. The same move can only be used once
+per chain. Hits in the middle of a chain keep the opponent close, so the next hit
+connects. Presses made slightly early are queued, so mashing works too.
+
+These key strings are **named combos** with their own finishing moves:
+
+| Keys      | Blaze           | Aria          | Titan         | Volt          |
+| --------- | --------------- | ------------- | ------------- | ------------- |
+| Q Q W     | Rising Flame    | Sky Cutter    | Boulder Upper | Static Lift   |
+| Q W E     | Inferno Knuckle | Azure Tempest | Avalanche     | Thunder Rush  |
+| Q Q Q Q   | Flame Flurry    | Blade Storm   | Rock Barrage  | Spark Flurry  |
+
+- **Launcher** (Q Q W) knocks the opponent upward so you can jump and keep going with aerials.
+- **Finisher** (Q W E) is a big move with its own animation and extra impact.
+- **Flurry** (Q Q Q Q) is a string of rapid hits ending in a push.
+
+A combo counter above your HUD panel shows hits and total damage. The **COMBOS**
+menu lists every fighter's combos, and training mode shows a cheat sheet on screen.
+CPU opponents use combos too, more often at higher levels.
 
 ## Tests
 
@@ -79,7 +105,7 @@ node tests/pose-sheet.js     # renders every pose/attack frame with hitboxes
 
 The test suite loads the game in headless Chromium, walks through the menus,
 simulates 16 full four-player CPU matches (every stage × every character), and
-checks every move, knockback scaling, shields, grabs/throws, recovery, Final
+checks every named QWER combo at several input speeds, every move, knockback scaling, shields, grabs/throws, recovery, Final
 Smashes, items, time/training modes, keyboard input mapping and CPU difficulty
 scaling.
 

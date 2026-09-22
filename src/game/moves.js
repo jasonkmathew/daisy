@@ -254,6 +254,73 @@
     anim: [[0, HOLD], [7, { aS: 2.4, bS: 2.3, lean: -0.1 }], [14, { by: 20, lean: 0.7, aS: 0.4, aE: 0.1, bS: 0.4, bE: 0.1 }, 'out'], [34, IDLE]],
   };
 
+  // ------------------------------------------------ QWER combo moves
+  // Q Q W: launcher - pops the opponent up for air follow-ups.
+  D.cLauncher = {
+    frames: 30, trail: 'haA', swing: 4, comboMove: true,
+    anim: [
+      [0, { by: 14, lean: 0.3, aS: 0.3, aE: 1.9, bS: 0.4, bE: 1.6 }],
+      [5, { by: -6, lean: -0.12, aS: 2.95, aE: 0.1, bS: -0.5, bE: 0.6, sy: 1.06, fa: 16 }, 'out'],
+      [13, {}],
+      [30, IDLE],
+    ],
+    motion: [[0, 7, 5, null, 'ground']],
+    hit: [hb(5, 10, 'haA', 20, 7, 88, 72, 30, { hl: 1.2 }), hb(5, 10, 'elA', 17, 6, 88, 72, 30), hb(4, 8, 'body', 22, 6, 88, 72, 30)],
+  };
+  // Q Q Q Q: rapid flurry that ends with a push.
+  D.cFlurry = {
+    frames: 44, trail: 'haA', comboMove: true,
+    anim: [
+      [0, { lean: 0.2, aS: 0.8, aE: 1.8, bS: 0.8, bE: 1.8 }],
+      [3, { aS: 1.6, aE: 0.05, bS: 0.5, bE: 1.9, lean: 0.3, fa: 17 }, 'linear'],
+      [6, { aS: 0.6, aE: 1.8, bS: 1.6, bE: 0.05 }, 'linear'],
+      [9, { aS: 1.65, aE: 0.05, bS: 0.5, bE: 1.9 }, 'linear'],
+      [12, { aS: 0.6, aE: 1.8, bS: 1.6, bE: 0.05 }, 'linear'],
+      [15, { aS: 1.6, aE: 0.05, bS: 0.5, bE: 1.9 }, 'linear'],
+      [18, { aS: 0.6, aE: 1.8, bS: 1.6, bE: 0.05 }, 'linear'],
+      [21, { aS: -0.6, aE: 1.4, bS: 0.3, lean: -0.1 }],
+      [25, { aS: 1.62, aE: 0, bS: -0.6, lean: 0.5, fa: 26, fb: -20 }, 'out'],
+      [32, {}],
+      [44, IDLE],
+    ],
+    motion: [[0, 4, 5, null, 'ground']],
+    tick: (f, fr) => {
+      if (fr % 3 === 0 && fr < 21) SB.audio.play('swing', 0.3);
+    },
+    hit: [
+      hb(3, 5, 'haA', 14, 1.5, 80, 0, 0, { grp: 0, fkb: 22, drag: true }),
+      hb(6, 8, 'haB', 14, 1.5, 80, 0, 0, { grp: 1, fkb: 22, drag: true }),
+      hb(9, 11, 'haA', 14, 1.5, 80, 0, 0, { grp: 2, fkb: 22, drag: true }),
+      hb(12, 14, 'haB', 14, 1.5, 80, 0, 0, { grp: 3, fkb: 22, drag: true }),
+      hb(15, 17, 'haA', 14, 1.5, 80, 0, 0, { grp: 4, fkb: 22, drag: true }),
+      hb(18, 20, 'haB', 14, 1.5, 80, 0, 0, { grp: 5, fkb: 22, drag: true }),
+      hb(25, 29, 'haA', 19, 6, 40, 60, 80, { grp: 6 }),
+    ],
+  };
+  // Q W E: the character's signature finisher.
+  D.cFinisher = {
+    frames: 50, trail: 'haA', swing: 9, comboMove: true,
+    anim: [
+      [0, { lean: -0.3, aS: -1.2, aE: 1.5, bS: 0.9, bE: 1.4, by: 10, fb: -20 }],
+      [7, { lean: -0.4, aS: -1.5, by: 12 }],
+      [10, { lean: 0.65, aS: 1.62, aE: 0, bS: -0.9, bE: 0.4, by: 2, fa: 36, fb: -26 }, 'out'],
+      [24, {}],
+      [50, IDLE],
+    ],
+    motion: [[6, 14, 10, null]],
+    tick: (f, fr) => {
+      if (fr < 8 && fr % 2 === 0) f.fxCharge();
+    },
+    ev: {
+      10: (f, m) => {
+        const h = f.jointWorld('haA');
+        m.fx.explosion(h.x + f.facing * 10, h.y, 45, f.pal.glow);
+        m.shake(6);
+      },
+    },
+    hit: [hb(10, 15, 'haA', 26, 14, 40, 85, 92, { hl: 1.8, finisher: true }), hb(10, 15, 'elA', 20, 12, 40, 85, 92, { finisher: true })],
+  };
+
   D.itemThrow = {
     frames: 22,
     anim: [[0, { aS: 2.7, aE: 0.8, lean: -0.1 }], [6, { aS: 1.3, aE: 0, lean: 0.3 }, 'out'], [22, IDLE]],

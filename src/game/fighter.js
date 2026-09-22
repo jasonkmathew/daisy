@@ -106,6 +106,14 @@
       this.hitShake = 0;
       this.launchTrail = 0;
       this.teeter = false;
+      this.chainSeq = '';
+      this.chainIds = [];
+      this.chaining = false;
+      this.nextLetter = null;
+      this.moveBtn = '';
+      this.moveHit = false;
+      this.comboShow = null;
+      this.comboDmg = 0;
     }
 
     // ------------------------------------------------------------ helpers
@@ -205,10 +213,20 @@
         this.buf.attack = BUF;
         this.bufSmash = c.cur.smash || (!c.digital && ((c.xTap < 5 && Math.abs(c.x) > 0.7) || (c.yTap < 5 && Math.abs(c.y) > 0.7)));
       } else if (this.buf.attack > 0) this.buf.attack--;
+      // Remember attack presses made during a move (even in hit-freeze) for combo chains.
+      if (this.state === 'move') {
+        let l = null;
+        if (c.pressed('attack') || c.pressed('smash')) l = this.bufSmash ? 'W' : 'Q';
+        else if (c.pressed('special')) l = 'E';
+        if (l) {
+          this.pendingChain = this.pendingChain || [];
+          if (this.pendingChain.length < 3) this.pendingChain.push({ letter: l, t: 26 });
+        }
+      }
       if (c.pressed('shield')) this.wasShieldPress = 0;
       else this.wasShieldPress++;
       // Tap jump: flicking up jumps.
-      if (SB.settings.tapJump !== false && c.yTap === 0 && c.y < -0.7) {
+      if ((SB.settings.tapJump !== false || c.digital) && c.yTap === 0 && c.y < -0.7) {
         this.buf.jump = BUF;
         this.tapJump = true;
       } else if (c.pressed('jump')) this.tapJump = false;
@@ -234,7 +252,16 @@
     startMove(id, keepVel) {
       let m = this.def.moveset[id];
       if (!this.grounded && this.def.moveset[id + 'Air']) m = this.def.moveset[id + 'Air'];
-      if (!m) return false;
+      if (!m) {
+        this.chaining = false;
+        return false;
+      }
+      // Combo chains: the same move can't be used twice in one chain (no infinite loops).
+      if (this.chaining && this.chainIds.includes(m.id) && !m.comboMove) {
+        this.chaining = false;
+        this.nextLetter = null;
+        return false;
+      }
       if (m.oncePerAir && !this.grounded) {
         if (this.airUsed[m.oncePerAir]) return false;
         this.airUsed[m.oncePerAir] = true;
@@ -251,6 +278,20 @@
       this.queued = false;
       this.trail.length = 0;
       this.moveRate = m.special || m.throw || id === 'pummel' ? 1 : this.st.speed;
+      const letter = this.nextLetter || '';
+      const chainStart = this.chaining;
+      if (this.chaining) {
+        this.chainSeq += letter;
+        this.chainIds.push(m.id);
+      } else {
+        this.chainSeq = letter;
+        this.chainIds = [m.id];
+      }
+      this.chaining = false;
+      this.nextLetter = null;
+      this.moveBtn = letter || this.moveBtn;
+      this.moveHit = false;
+      if (!chainStart) this.pendingChain = null;
       if (!keepVel && this.grounded && !m.keepMomentum) this.vx *= 0.5;
       this.fireEvents(-1, 0);
       return true;
@@ -266,6 +307,55 @@
       }
     }
 
+    // Q = light, W = heavy, E = special. After a hit you may cancel into an
+    // equal or stronger button; certain sequences are named combo finishers.
+    tryChain(m) {
+      const c = this.ctl;
+      const first = m.hit.length ? Math.min(...m.hit.map((h) => h.f[0])) : 0;
+      if (this.mf < first + 1) return false;
+      // Presses queued during the move are used strictly in the order pressed.
+      let letter = null;
+      const fromPending = !!this.pendingChain;
+      if (fromPending) letter = this.pendingChain[0].letter;
+      else if (this.buf.attack > 0) letter = this.bufSmash ? 'W' : 'Q';
+      else if (this.buf.special > 0) letter = 'E';
+      if (!letter) return false;
+      if (fromPending) this.bufSmash = letter === 'W';
+      const TIER = { Q: 1, W: 2, E: 3, R: 4 };
+      const seq = this.chainSeq + letter;
+      const named = this.def.combos && this.def.combos[seq];
+      if (!named) {
+        if (TIER[letter] < (TIER[this.moveBtn] || 1) || this.chainIds.length >= 6) return false;
+      }
+      const jabNext = !named && letter === 'Q' && m.next && Math.abs(c.x) < 0.5 && Math.abs(c.y) < 0.5 && !c.cur.crouch;
+      // Live buffers duplicate queued presses, so clear them.
+      this.buf.special = 0;
+      this.buf.attack = 0;
+      if (fromPending) this.pendingChain.shift();
+      if (this.pendingChain && !this.pendingChain.length) this.pendingChain = null;
+      this.chaining = true;
+      this.nextLetter = letter;
+      let ok;
+      if (named) {
+        ok = this.startMove(named.id, true);
+        if (ok) this.m.comboCall(this, named.name);
+      } else if (jabNext) ok = this.startMove(m.next.id);
+      else if (letter === 'E') ok = this.special();
+      else ok = this.grounded ? this.groundAttack() : this.airAttack();
+      this.chaining = false;
+      const nm = this.move;
+      if (ok && nm && nm !== m && !named && nm.hit.length) {
+        // Chained moves skip most of their wind-up so links are reliable.
+        const start = Math.min(...nm.hit.map((h) => h.f[0]));
+        if (start > 5) {
+          this.mf = start - 5;
+          this.prevMf = this.mf - 1;
+          this.chargeDone = true;
+        }
+      }
+      return !!ok && nm !== m;
+    }
+
     endMove() {
       const m = this.move;
       this.move = null;
@@ -276,7 +366,7 @@
         return;
       }
       if (this.grounded) {
-        this.state = m && m.crouch && this.ctl.y > 0.5 ? 'crouch' : 'idle';
+        this.state = m && m.crouch && (this.ctl.y > 0.5 || this.ctl.cur.crouch) ? 'crouch' : 'idle';
       } else this.state = m && m.helpless ? 'helpless' : 'air';
       this.sf = 0;
     }
@@ -301,6 +391,12 @@
           return true;
         }
       }
+      // Shift (crouch) held turns attacks into their downward versions.
+      if (c.cur.crouch && Math.abs(sy) < 0.5) {
+        sy = 1;
+        sx = 0;
+      }
+      this.nextLetter = smash ? 'W' : 'Q';
       const running = this.state === 'run' || (this.state === 'dash' && this.sf > 6);
       let id;
       if (smash) {
@@ -329,6 +425,7 @@
         this.cbuf = null;
       }
       if (this.item && this.item.throwable) return this.throwItem(sx, sy, false);
+      this.nextLetter = this.bufSmash ? 'W' : 'Q';
       let id;
       if (Math.abs(sy) > 0.5 && Math.abs(sy) >= Math.abs(sx)) id = sy < 0 ? 'uair' : 'dair';
       else if (Math.abs(sx) > 0.35) id = SB.sign(sx) === this.facing ? 'fair' : 'bair';
@@ -346,6 +443,7 @@
         this.facing = SB.sign(c.x);
         id = 'sspec';
       } else id = 'nspec';
+      this.nextLetter = 'E';
       return this.startMove(id, true);
     }
 
@@ -392,6 +490,7 @@
       }
       if (this.use('grab')) {
         if (this.item) return this.throwItem(c.x, c.y, false);
+        this.nextLetter = 'R';
         return this.startMove('grab');
       }
       if (this.ctl.cur.shield) {
@@ -466,7 +565,7 @@
         if ((sx > 0 && this.vx < target) || (sx < 0 && this.vx > target)) this.vx = SB.approach(this.vx, target, st.airAccel * mul);
       } else this.vx = SB.approach(this.vx, 0, st.airFric);
       // Fast fall: flick down while falling.
-      if (!this.fastFall && this.vy > -1 && this.ctl.yTap < 3 && this.ctl.y > 0.7) {
+      if (!this.fastFall && this.vy > -1 && ((this.ctl.yTap < 3 && this.ctl.y > 0.7) || this.ctl.pressed('crouch'))) {
         this.fastFall = true;
         this.vy = Math.max(this.vy, this.st.ffall * 0.8);
         this.m.fx.spark(this.x, this.y - this.h, '#ffffff', 3);
@@ -491,6 +590,7 @@
       if (this.djumpT > 0) this.djumpT--;
       if (this.lastHitTimer > 0 && --this.lastHitTimer === 0) this.lastHitBy = null;
       if (this.launchTrail > 0) this.launchTrail--;
+      if (this.comboShow && --this.comboShow.t <= 0) this.comboShow = null;
       if (!this.shielding() && this.shieldHP < SHIELD_MAX) this.shieldHP = Math.min(SHIELD_MAX, this.shieldHP + 0.09);
       this.visOff.x *= 0.8;
       this.visOff.y *= 0.8;
@@ -516,7 +616,7 @@
         case 'idle': {
           this.friction();
           if (this.groundActions()) break;
-          if (c.y > 0.5 && Math.abs(c.y) > Math.abs(c.x)) {
+          if (c.cur.crouch || (c.y > 0.5 && Math.abs(c.y) > Math.abs(c.x))) {
             if (this.tryDrop()) break;
             this.state = 'crouch';
             this.sf = 0;
@@ -536,7 +636,7 @@
         }
         case 'walk': {
           if (this.groundActions()) break;
-          if (c.y > 0.5 && Math.abs(c.y) > Math.abs(c.x)) {
+          if (c.cur.crouch || (c.y > 0.5 && Math.abs(c.y) > Math.abs(c.x))) {
             this.state = 'crouch';
             this.sf = 0;
             break;
@@ -573,7 +673,7 @@
         }
         case 'run': {
           if (this.groundActions()) break;
-          if (c.y > 0.6 && Math.abs(c.y) > Math.abs(c.x)) {
+          if (c.cur.crouch || (c.y > 0.6 && Math.abs(c.y) > Math.abs(c.x))) {
             this.state = 'crouch';
             this.sf = 0;
             break;
@@ -606,7 +706,7 @@
           this.friction(1.5);
           if (this.tryDrop()) break;
           if (this.groundActions()) break;
-          if (c.y < 0.4) {
+          if (c.y < 0.4 && !c.cur.crouch) {
             this.state = 'idle';
             this.sf = 0;
           }
@@ -959,6 +1059,15 @@
       this.fireEvents(this.prevMf, this.mf);
       if (this.move !== m) return;
 
+      // Combo chains: a move that connected can be cancelled into the next one.
+      // Presses made slightly before the hit lands are remembered for a while.
+      if (this.pendingChain) {
+        for (const p of this.pendingChain) p.t--;
+        this.pendingChain = this.pendingChain.filter((p) => p.t > 0);
+        if (!this.pendingChain.length) this.pendingChain = null;
+      }
+      if (this.moveHit && this.tryChain(m)) return;
+
       // Jab combos.
       if (m.next) {
         if (this.mf >= m.next.from && this.mf <= m.next.to && this.buf.attack > 0 && Math.abs(c.x) < 0.5 && Math.abs(c.y) < 0.5) {
@@ -966,6 +1075,8 @@
           this.queued = true;
         }
         if (this.queued && this.mf >= m.next.start) {
+          this.chaining = true;
+          this.nextLetter = 'Q';
           this.startMove(m.next.id);
           return;
         }
@@ -1195,8 +1306,14 @@
         from.stats.dealt += d;
         this.lastHitBy = from;
         this.lastHitTimer = 600;
-        if (this.comboBy === from && (this.hitstun > 0 || this.state === 'grabbed' || this.state === 'thrown')) this.combo++;
-        else this.combo = 1;
+        if (this.comboBy === from && (this.hitstun > 0 || this.state === 'grabbed' || this.state === 'thrown')) {
+          this.combo++;
+          this.comboDmg += d;
+        } else {
+          this.combo = 1;
+          this.comboDmg = d;
+        }
+        if (this.combo >= 2) from.comboShow = { hits: this.combo, dmg: this.comboDmg, t: 110, name: from.comboShow && from.comboShow.t > 0 ? from.comboShow.name : null };
         this.comboBy = from;
         from.stats.maxCombo = Math.max(from.stats.maxCombo, this.combo);
       }

@@ -71,7 +71,7 @@ const shotDir = path.join(__dirname, 'screenshots');
   name = await page.evaluate(() => SB.app.screen.constructor.name);
   check(name === 'GameScreen', 'FIGHT should start a match (got ' + name + ')');
   // Play as P1 for a bit with the keyboard.
-  const keys = ['KeyD', 'KeyJ', 'Space', 'KeyK', 'KeyA', 'KeyL', 'KeyU', 'KeyW', 'KeyS', 'KeyI'];
+  const keys = ['ArrowRight', 'KeyQ', 'ArrowUp', 'KeyE', 'ArrowLeft', 'Space', 'KeyR', 'KeyW', 'ShiftLeft', 'ArrowDown'];
   for (let i = 0; i < 60; i++) {
     const k = keys[i % keys.length];
     await page.keyboard.down(k);
@@ -309,13 +309,13 @@ const shotDir = path.join(__dirname, 'screenshots');
     };
     const hold = (o, n, extra) => Array.from({ length: n }, (_, i) => Object.assign({}, o, i === n - 1 ? extra : {}));
     seq('jab', [{ attack: true }], 'jab1');
-    seq('ftilt (D+J together)', [{ x: 1 }, { x: 1, attack: true }], 'ftilt');
+    seq('ftilt (Right+Q)', [{ x: 1 }, { x: 1, attack: true }], 'ftilt');
     seq('dash attack', hold({ x: 1 }, 20, { attack: true }), 'dash');
-    seq('utilt (W+J together)', [{ y: -1 }, { y: -1, attack: true }], 'utilt');
+    seq('utilt (Up+Q)', [{ y: -1 }, { y: -1, attack: true }], 'utilt');
     seq('dtilt', hold({ y: 1 }, 4, { attack: true }), 'dtilt');
-    seq('fsmash (I+D)', [{ x: 1, smash: true }], 'fsmash');
-    seq('usmash (I+W)', [{ y: -1 }, { y: -1, smash: true }], 'usmash');
-    seq('dsmash (I+S)', [{ y: 1, smash: true }], 'dsmash');
+    seq('fsmash (Right+W)', [{ x: 1, smash: true }], 'fsmash');
+    seq('usmash (Up+W)', [{ y: -1 }, { y: -1, smash: true }], 'usmash');
+    seq('dsmash (Down+W)', [{ y: 1, smash: true }], 'dsmash');
     seq('nspec', [{ special: true }], 'nspec');
     seq('sspec', [{ x: 1, special: true }], 'sspec');
     seq('uspec', [{ y: -1, special: true }], 'uspec');
@@ -327,6 +327,20 @@ const shotDir = path.join(__dirname, 'screenshots');
     seq('bair', [{ jump: true }, { jump: true }, {}, {}, {}, {}, {}, { x: -1 }, { x: -1, attack: true }], 'bair');
     seq('uair', [{ jump: true }, { jump: true }, {}, {}, {}, {}, {}, {}, { y: -1, attack: true }], 'uair');
     seq('dair', [{ jump: true }, { jump: true }, {}, {}, {}, {}, {}, {}, { y: 1, attack: true }], 'dair');
+    seq('crouch (Shift)', hold({ crouch: true }, 6), null);
+    seq('dtilt (Shift+Q)', hold({ crouch: true }, 4, { attack: true }), 'dtilt');
+    {
+      const m = mk('blaze', 'titan');
+      m.phase = 'play';
+      const f = m.fighters[0];
+      f.ai = null;
+      f.ctl.digital = true;
+      for (let i = 0; i < 10; i++) {
+        f.ctl.virtual = Object.assign(B(), { crouch: true });
+        m.step();
+      }
+      res.inputs['crouch (Shift)'] = f.state === 'crouch' ? true : f.state;
+    }
     seq('airdodge', [{ jump: true }, { jump: true }, {}, {}, {}, {}, {}, {}, { shield: true }], 'airdodge');
     // Items: heart heals, bomb explodes
     {
@@ -348,6 +362,42 @@ const shotDir = path.join(__dirname, 'screenshots');
       run(m, 30);
       res.bomb = b.damage > d0;
     }
+    // QWER combos: land a hit, then press the next key.
+    res.combos = {};
+    // Presses are made at fixed intervals (fast mashing to slow) like a real player.
+    const combo = (char, keys, expectId, gap) => {
+      const m = mk(char, 'titan');
+      m.phase = 'play';
+      const [f, v] = m.fighters;
+      f.ai = null;
+      f.ctl.digital = true;
+      f.x = -30;
+      v.x = 22;
+      v.damage = 30;
+      f.facing = 1;
+      const map = { Q: 'attack', W: 'smash', E: 'special' };
+      const seen = [];
+      let named = null;
+      for (let i = 0; i < 200; i++) {
+        const inp = B();
+        const k = i / gap;
+        if (Number.isInteger(k) && k < keys.length) inp[map[keys[k]]] = true;
+        f.ctl.virtual = inp;
+        m.step();
+        if (f.move && seen[seen.length - 1] !== f.move.id) seen.push(f.move.id);
+        if (f.comboShow && f.comboShow.name) named = f.comboShow.name;
+      }
+      const ok = seen.includes(expectId) && f.stats.maxCombo >= keys.length;
+      res.combos[char + ' ' + keys + ' gap' + gap] = { ok, seen: seen.join('>'), named, hits: f.stats.maxCombo, dmg: Math.round(v.stats.taken) };
+    };
+    for (const c of SB.ROSTER) {
+      for (const gap of [3, 6, 12]) {
+        combo(c.id, 'QQW', 'cLauncher', gap);
+        combo(c.id, 'QWE', 'cFinisher', gap);
+        combo(c.id, 'QQQQ', 'cFlurry', gap);
+      }
+    }
+    // Generic chain: ftilt (Q) then heavy (W) then special (E)
     // Time mode ends on the clock with a ranking.
     {
       const m = new SB.Match({ players: [0, 1, 2].map((i) => ({ slot: i, char: SB.ROSTER[i].id, palette: 0, type: 'cpu', level: 7 })), stage: 'sky', mode: 'time', time: 1, stocks: 3, items: true });
@@ -389,6 +439,11 @@ const shotDir = path.join(__dirname, 'screenshots');
     }
     return res;
   });
+  for (const k in mech.combos) {
+    const c = mech.combos[k];
+    console.log('  combo ' + k.padEnd(20) + ' ' + (c.ok ? 'OK ' : 'FAIL') + '  ' + c.seen + '  ' + (c.named || '') + '  hits:' + c.hits + ' dmg:' + c.dmg);
+    check(c.ok && c.named, 'combo ' + k + ' should trigger its named finisher');
+  }
   console.log('  time mode: ' + JSON.stringify(mech.timeMode));
   check(mech.timeMode.done, 'time mode should end');
   console.log('  training: ' + JSON.stringify(mech.training));
