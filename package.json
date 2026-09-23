@@ -1,0 +1,26 @@
+{
+  "name": "brawl-legends",
+  "version": "1.0.0",
+  "description": "A Smash-style 2D platform fighter for the desktop, built with HTML5 canvas and Electron.",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "web": "npx http-server -c-1 -p 8080 .",
+    "test": "node tests/run-tests.js",
+    "dist": "electron-builder"
+  },
+  "keywords": ["game", "fighting", "platform-fighter", "electron", "canvas"],
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.brawllegends.game",
+    "productName": "Brawl Legends",
+    "files": ["index.html", "src/**/*", "electron/**/*"],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg", "category": "public.app-category.games" },
+    "linux": { "target": "AppImage", "category": "Game" }
+  }
+}
