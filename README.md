@@ -129,6 +129,8 @@ scaling, dodges, grabs/throws, recovery, wall cling and wall jumps, ground pound
 weapon pickup/reach/throw, Finals, items, time/training modes, keyboard input
 mapping and CPU difficulty scaling.
 
+Developer notes and ideas for future work: [docs/DEV_NOTES.md](docs/DEV_NOTES.md).
+
 ## Project layout
 
 ```
