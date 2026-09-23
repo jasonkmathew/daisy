@@ -321,7 +321,7 @@ const shotDir = path.join(__dirname, 'screenshots');
     seq('uspec', [{ y: -1, special: true }], 'uspec');
     seq('dspec', [{ y: 1, special: true }], 'dspec');
     seq('grab', [{ grab: true }], 'grab');
-    seq('shield', hold({ shield: true }, 10), 'shield');
+    seq('dodge (Space)', hold({ shield: true }, 10), 'spotdodge');
     seq('nair', [{ jump: true }, { jump: true }, {}, {}, {}, {}, {}, {}, { attack: true }], 'nair');
     seq('fair', [{ jump: true }, { jump: true }, {}, {}, {}, {}, {}, { x: 1 }, { x: 1, attack: true }], 'fair');
     seq('bair', [{ jump: true }, { jump: true }, {}, {}, {}, {}, {}, { x: -1 }, { x: -1, attack: true }], 'bair');
@@ -361,6 +361,97 @@ const shotDir = path.join(__dirname, 'screenshots');
       const d0 = b.damage;
       run(m, 30);
       res.bomb = b.damage > d0;
+    }
+    // Brawlhalla mechanics: wall cling + wall jump, ground pound, weapons.
+    {
+      const m = mk('blaze', 'titan');
+      m.phase = 'play';
+      const [f, v] = m.fighters;
+      f.ai = null;
+      f.ctl.digital = true;
+      v.x = 300;
+      const wall = m.stage.solids[0];
+      f.x = wall.x - f.w / 2 - 6;
+      f.y = wall.y + 70;
+      f.grounded = false;
+      f.state = 'air';
+      f.vy = 0;
+      let clung = false;
+      for (let i = 0; i < 20 && !clung; i++) {
+        f.ctl.virtual = Object.assign(B(), { x: 1 });
+        m.step();
+        clung = f.state === 'wall';
+      }
+      const yCling = f.y;
+      for (let i = 0; i < 20; i++) {
+        f.ctl.virtual = Object.assign(B(), { x: 1 });
+        m.step();
+      }
+      const slid = f.y - yCling;
+      f.ctl.virtual = Object.assign(B(), { jump: true });
+      m.step();
+      res.wall = { clung, slowSlide: slid < 60, jumpedOff: f.state === 'air' && f.vx < 0 && f.vy < 0 };
+    }
+    {
+      const m = mk('titan', 'blaze');
+      m.phase = 'play';
+      const [f, v] = m.fighters;
+      f.ai = null;
+      f.ctl.digital = true;
+      v.x = 400;
+      const seen = new Set();
+      for (let i = 0; i < 140; i++) {
+        const inp = B();
+        if (i === 0 || i === 1) inp.jump = true;
+        if (i === 14) Object.assign(inp, { y: 1, smash: true });
+        f.ctl.virtual = inp;
+        m.step();
+        if (f.move) seen.add(f.move.id);
+      }
+      res.gpound = { pound: seen.has('gpound'), land: seen.has('gpoundLand'), grounded: f.grounded };
+    }
+    {
+      const m = mk('aria', 'titan');
+      m.phase = 'play';
+      const [f, v] = m.fighters;
+      f.ai = null;
+      f.ctl.digital = true;
+      v.x = 400;
+      const unarmedHbs = (() => {
+        f.startMove('jab1');
+        let n = 0;
+        for (let i = 0; i < 20; i++) {
+          m.step();
+          n = Math.max(n, m.hitboxesOf(f).length);
+        }
+        return n;
+      })();
+      for (let i = 0; i < 40; i++) m.step();
+      const it = new SB.Item(m, 'weapon', f.x, f.y - 2);
+      it.wtype = 'katana';
+      it.vy = 0;
+      m.items.push(it);
+      m.step();
+      f.ctl.virtual = Object.assign(B(), { grab: true });
+      m.step();
+      f.ctl.virtual = B();
+      const picked = !!(f.weapon && f.weapon.type === 'katana');
+      for (let i = 0; i < 30; i++) m.step();
+      f.startMove('jab1');
+      let armedHbs = 0;
+      let armedDmg = 0;
+      for (let i = 0; i < 20; i++) {
+        m.step();
+        const hb = m.hitboxesOf(f);
+        armedHbs = Math.max(armedHbs, hb.length);
+        for (const h of hb) armedDmg = Math.max(armedDmg, h.dmg);
+      }
+      for (let i = 0; i < 30; i++) m.step();
+      f.ctl.virtual = Object.assign(B(), { grab: true });
+      m.step();
+      f.ctl.virtual = B();
+      const thrown = !f.weapon && m.projectiles.some((p) => p.type === 'weapon');
+      res.weapon = { picked, longerReach: armedHbs > unarmedHbs, armedDmg: +armedDmg.toFixed(1), thrown };
     }
     // QWER combos: land a hit, then press the next key.
     res.combos = {};
@@ -469,6 +560,12 @@ const shotDir = path.join(__dirname, 'screenshots');
   for (const c in mech.finals) check(mech.finals[c], c + ' final smash should hit');
   console.log('  heart heals: ' + mech.heart + ', bomb explodes: ' + mech.bomb);
   check(mech.heart && mech.bomb, 'items should work');
+  console.log('  wall cling: ' + JSON.stringify(mech.wall));
+  check(mech.wall.clung && mech.wall.slowSlide && mech.wall.jumpedOff, 'wall cling / wall jump should work');
+  console.log('  ground pound: ' + JSON.stringify(mech.gpound));
+  check(mech.gpound.pound && mech.gpound.land && mech.gpound.grounded, 'ground pound should slam and land');
+  console.log('  weapons: ' + JSON.stringify(mech.weapon));
+  check(mech.weapon.picked && mech.weapon.longerReach && mech.weapon.thrown, 'weapon pickup, reach and throw should work');
 
   if (SHOTS) {
     // Gameplay screenshots on each stage

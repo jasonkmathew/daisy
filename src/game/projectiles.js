@@ -138,6 +138,21 @@
           }
           break;
         }
+        case 'weapon': {
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.rot * 1.3);
+          ctx.globalCompositeOperation = 'lighter';
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+          g.addColorStop(0, SB.rgba(this.color, 0.5));
+          g.addColorStop(1, SB.rgba(this.color, 0));
+          ctx.fillStyle = g;
+          ctx.fillRect(-40, -40, 80, 80);
+          ctx.globalCompositeOperation = 'source-over';
+          const w = SB.WEAPONS[this.wtype];
+          ctx.translate(-w.len * 0.35, 0);
+          SB.drawWeapon(ctx, this.wtype, w.len * 0.7, w.color);
+          break;
+        }
         case 'shuriken': {
           ctx.translate(this.x, this.y);
           ctx.rotate(this.rot);

@@ -321,6 +321,41 @@
     hit: [hb(10, 15, 'haA', 26, 14, 40, 85, 92, { hl: 1.8, finisher: true }), hb(10, 15, 'elA', 20, 12, 40, 85, 92, { finisher: true })],
   };
 
+  // Heavy + down in the air: Brawlhalla-style ground pound.
+  D.gpound = {
+    frames: 60, air: true, land: 16, landInto: 'gpoundLand', trail: 'ftA', swing: 6,
+    anim: [
+      [0, { aH: 1.6, aK: 2.4, bH: 1.5, bK: 2.4, lean: 0.4, aS: 2.4, bS: 2.3 }],
+      [6, { aH: 0.1, aK: 0.1, bH: -0.1, bK: 0.2, lean: 0.05, aS: 1.3, aE: 0.2, bS: -1.3, bE: 0.2 }, 'out'],
+      [60, {}],
+    ],
+    tick: (f, fr) => {
+      f.gmul = 0;
+      if (fr < 6) {
+        f.vy = Math.min(f.vy * 0.5, 0);
+        f.vx *= 0.8;
+      } else {
+        f.vy = 15;
+        if (fr % 2 === 0) f.fxTrail('dust');
+      }
+    },
+    hit: [hb(6, 60, 'ftA', 17, 9, 290, 30, 60, { kind: 'kick' }), hb(6, 60, 'ftB', 14, 8, 290, 30, 60, { kind: 'kick' })],
+  };
+  D.gpoundLand = {
+    frames: 22,
+    anim: [[0, Object.assign({}, CROUCH, { by: 28, fa: 22, fb: -22 })], [22, IDLE]],
+    ev: {
+      0: (f, m) => {
+        m.fx.dust(f.x, f.y, -1, 5);
+        m.fx.dust(f.x, f.y, 1, 5);
+        m.fx.ring(f.x, f.y - 4, '#ffffff', 50);
+        m.shake(4);
+        SB.audio.play('land');
+      },
+    },
+    hit: [hb(0, 3, { x: 0, y: -14 }, 42, 5, 70, 55, 40, { auto: true, kind: 'kick' })],
+  };
+
   D.itemThrow = {
     frames: 22,
     anim: [[0, { aS: 2.7, aE: 0.8, lean: -0.1 }], [6, { aS: 1.3, aE: 0, lean: 0.3 }, 'out'], [22, IDLE]],
@@ -368,6 +403,7 @@
     teeter: { lean: -0.2, aS: 2.2, aE: 0.8, bS: 1.6, bE: 1.2, fa: 3, fb: -14, head: 0.3 },
     skid: { lean: -0.35, by: 10, fa: 22, fb: -6, aS: 1.1, aE: 0.8, bS: -1.0, bE: 0.6 },
     dashStart: { lean: 0.45, by: 6, fa: 20, fb: -20, aS: -0.9, aE: 1.0, bS: 1.1, bE: 1.3 },
+    wall: { ikA: 0, ikB: 0, lean: -0.15, head: 0.2, aS: -1.3, aE: 0.4, bS: -0.9, bE: 0.9, aH: 1.0, aK: 1.8, bH: -0.2, bK: 1.1 },
     victory: { lean: -0.05, head: -0.15, aS: 2.65, aE: 0.25, bS: 0.2, bE: 1.9, fa: 12, fb: -14 },
   };
 

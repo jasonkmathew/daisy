@@ -35,6 +35,8 @@
       this.out = false;
       this.score = 0;
       this.finalReady = false;
+      this.weapon = null;
+      this.prop = this.def.prop;
       this.pose = SB.Skel.resolve(Object.assign({}, SB.Skel.NEUTRAL, this.def.base), this.def.prop);
       this.J = SB.Skel.solve(this.pose, this.def.prop, {});
       // Hand offset while hanging on a ledge (so the hands line up with the corner).
@@ -114,6 +116,11 @@
       this.moveHit = false;
       this.comboShow = null;
       this.comboDmg = 0;
+      this.dodgeCD = 0;
+      this.wallCD = 0;
+      this.wallTouch = null;
+      this.wallDir = 0;
+      if (!this.weapon) this.prop = this.def.prop;
     }
 
     // ------------------------------------------------------------ helpers
@@ -426,6 +433,11 @@
       }
       if (this.item && this.item.throwable) return this.throwItem(sx, sy, false);
       this.nextLetter = this.bufSmash ? 'W' : 'Q';
+      // Heavy in the air: down = ground pound, up = recovery (like Brawlhalla).
+      if (this.bufSmash && Math.abs(sy) > 0.5 && Math.abs(sy) >= Math.abs(sx)) {
+        if (sy > 0) return this.startMove('gpound', true);
+        return this.startMove('uspec', true);
+      }
       let id;
       if (Math.abs(sy) > 0.5 && Math.abs(sy) >= Math.abs(sx)) id = sy < 0 ? 'uair' : 'dair';
       else if (Math.abs(sx) > 0.35) id = SB.sign(sx) === this.facing ? 'fair' : 'bair';
@@ -490,17 +502,22 @@
       }
       if (this.use('grab')) {
         if (this.item) return this.throwItem(c.x, c.y, false);
+        if (this.weapon) return this.throwWeapon();
+        if (this.tryPickupWeapon()) return true;
         this.nextLetter = 'R';
         return this.startMove('grab');
       }
-      if (this.ctl.cur.shield) {
-        if (this.buf.attack > 0) {
-          this.buf.attack = 0;
-          return this.startMove('grab');
+      // Brawlhalla-style: the dodge button dodges (no shield).
+      if (this.buf.shield > 0) {
+        if (this.dodgeCD > 0) return false;
+        this.buf.shield = 0;
+        if (Math.abs(c.x) > 0.4) this.startRoll(SB.sign(c.x));
+        else {
+          this.state = 'spotdodge';
+          this.sf = 0;
+          SB.audio.play('dodge');
         }
-        this.state = 'shield';
-        this.sf = 0;
-        SB.audio.play('shield');
+        this.dodgeCD = 45;
         return true;
       }
       if (this.use('special')) return this.special();
@@ -525,7 +542,11 @@
         return true;
       }
       if (this.use('attack') || this.cbuf) return this.airAttack();
-      if (this.use('grab') && this.item) return this.throwItem(this.ctl.x, this.ctl.y, false);
+      if (this.use('grab')) {
+        if (this.item) return this.throwItem(this.ctl.x, this.ctl.y, false);
+        if (this.weapon) return this.throwWeapon();
+        if (this.tryPickupWeapon()) return true;
+      }
       if (this.use('shield') && !this.airUsed.dodge) {
         this.airUsed.dodge = true;
         this.state = 'airdodge';
@@ -586,6 +607,8 @@
       if (this.state === 'dead') return this.updateDead();
       if (this.inv > 0) this.inv--;
       if (this.ledgeCD > 0) this.ledgeCD--;
+      if (this.dodgeCD > 0) this.dodgeCD--;
+      if (this.wallCD > 0) this.wallCD--;
       if (this.dropThrough > 0) this.dropThrough--;
       if (this.djumpT > 0) this.djumpT--;
       if (this.lastHitTimer > 0 && --this.lastHitTimer === 0) this.lastHitBy = null;
@@ -748,10 +771,44 @@
         case 'air': {
           if (this.airActions()) break;
           this.airDrift();
+          this.tryWallCling();
           break;
         }
         case 'helpless': {
           this.airDrift(0.6);
+          this.tryWallCling();
+          break;
+        }
+        case 'wall': {
+          // Clinging to a wall: slide slowly, jump off, or let go.
+          const d = this.wallDir;
+          this.facing = -d;
+          this.vx = d * 1.5;
+          this.gmul = 0.15;
+          if (this.vy > 2.6) this.vy = 2.6;
+          if (this.sf % 8 === 0) this.m.fx.dust(this.x + d * this.w * 0.5, this.y - this.h * 0.4, -d, 1);
+          if (this.use('jump')) {
+            this.vx = -d * 4.5;
+            this.vy = -this.st.jump * 0.95;
+            this.state = 'air';
+            this.sf = 0;
+            this.wallCD = 14;
+            this.djumpT = 0;
+            this.m.fx.ring(this.x + d * this.w * 0.5, this.y - this.h * 0.4, '#ffffff', 26);
+            SB.audio.play('jump');
+            break;
+          }
+          if (this.buf.attack > 0 || this.buf.special > 0 || this.cbuf || this.buf.shield > 0) {
+            this.state = 'air';
+            this.wallCD = 10;
+            this.airActions();
+            break;
+          }
+          if (this.ctl.x * d < -0.5 || this.ctl.y > 0.7 || (!this.wallTouch && this.sf > 2)) {
+            this.state = 'air';
+            this.sf = 0;
+            this.wallCD = 16;
+          }
           break;
         }
         case 'move':
@@ -816,7 +873,6 @@
           const t = this.sf / 30;
           this.vx = this.rollDir * this.st.roll * Math.sin(Math.min(1, t * 1.2) * Math.PI) * 1.2;
           if (this.sf >= 30) {
-            this.facing = -this.rollDir;
             this.vx = 0;
             this.state = 'idle';
             this.sf = 0;
@@ -978,6 +1034,59 @@
           this.gmul = 0;
           break;
       }
+    }
+
+    tryWallCling() {
+      const w = this.wallTouch;
+      if (!w || this.wallCD > 0 || this.grounded) return false;
+      if (this.ctl.x * w.dir < 0.5 || this.vy < -7) return false;
+      this.state = 'wall';
+      this.sf = 0;
+      this.wallDir = w.dir;
+      this.fastFall = false;
+      this.airUsed.dodge = false;
+      this.vy = Math.min(this.vy, 1);
+      SB.audio.play('ledge');
+      return true;
+    }
+
+    // Weapons (Brawlhalla-style pickups): R picks up, R again throws.
+    tryPickupWeapon() {
+      const it = this.m.items.find((i) => i.type === 'weapon' && !i.dead && !i.holder && Math.abs(i.x - this.x) < this.w * 0.5 + 34 && i.y > this.y - this.h - 20 && i.y < this.y + 40);
+      if (!it) return false;
+      this.equipWeapon(it.wtype);
+      it.dead = true;
+      this.m.fx.ring(this.x, this.y - this.h / 2, SB.WEAPONS[it.wtype].color, 50);
+      this.m.fx.spark(it.x, it.y - 10, '#ffffff', 8);
+      SB.audio.play('power');
+      return true;
+    }
+
+    equipWeapon(type) {
+      const w = SB.WEAPONS[type];
+      this.weapon = Object.assign({ type }, w);
+      this.prop = Object.assign({}, this.def.prop, { weapon: w.len });
+    }
+
+    unequipWeapon() {
+      this.weapon = null;
+      this.prop = this.def.prop;
+    }
+
+    throwWeapon() {
+      const w = this.weapon;
+      const c = this.ctl;
+      let vx = this.facing * 15;
+      let vy = -2;
+      if (c.y < -0.5) (vx = this.facing * 4), (vy = -15);
+      else if (c.y > 0.5) (vx = this.facing * 6), (vy = 12);
+      else if (Math.abs(c.x) > 0.35) this.facing = SB.sign(c.x);
+      const h = this.jointWorld('haA');
+      this.m.spawnProjectile(this, 'weapon', { x: h.x, y: h.y, vx: vx * (vx === this.facing * 15 ? 1 : 1), vy, r: 16, life: 50, grav: 0.18, dmg: 10, ang: 40, bkb: 45, kbg: 60, kind: 'slash', wtype: w.type, color: w.color });
+      this.unequipWeapon();
+      this.startMove('itemThrow', true);
+      SB.audio.play('throw');
+      return true;
     }
 
     startRoll(dir) {
@@ -1415,6 +1524,7 @@
 
     moveAndCollide(dx, dy) {
       const stage = this.m.stage;
+      this.wallTouch = null;
       const hw = this.w / 2;
       const h = this.h;
       const px = this.x;
@@ -1427,6 +1537,7 @@
             const left = px <= s.x + s.w / 2;
             nx = left ? s.x - hw - 0.01 : s.x + s.w + hw + 0.01;
             this.vx = 0;
+            if (!this.grounded && s.wall !== false) this.wallTouch = { dir: left ? 1 : -1, s };
             if (Math.abs(this.kbx) > 3 && this.state === 'tumble') {
               this.kbx = -this.kbx * 0.6;
               this.m.fx.dust(nx + (left ? hw : -hw), py - h / 2, left ? -1 : 1, 6);
@@ -1552,6 +1663,9 @@
         case 'airdodge':
           land(this.sf < 26 ? 10 : 4);
           break;
+        case 'wall':
+          land(3);
+          break;
         case 'tumble': {
           const speed = dy;
           if (this.wasShieldPress < 20) {
@@ -1611,6 +1725,7 @@
         this.item.dead = true;
         this.item = null;
       }
+      this.unequipWeapon();
       this.state = 'dead';
       this.deadT = 0;
       this.move = null;
@@ -1788,6 +1903,10 @@
           Object.assign(out, P.tumble);
           out.spin = 0;
           break;
+        case 'wall':
+          Object.assign(out, P.wall);
+          out.aS += Math.sin(t * 0.1) * 0.05;
+          break;
         case 'ledge':
           Object.assign(out, P.ledge);
           out.aH += Math.sin(t * 0.08) * 0.08;
@@ -1822,7 +1941,7 @@
       if (S !== 'air' && S !== 'roll' && S !== 'tech' && S !== 'airdodge' && S !== 'tumble' && S !== 'move' && S !== 'thrown' && S !== 'helpless') {
         if (out.spin === undefined) out.spin = 0;
       }
-      SB.Skel.solve(out, c.prop, this.J);
+      SB.Skel.solve(out, this.prop, this.J);
     }
   }
 

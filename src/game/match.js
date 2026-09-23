@@ -62,6 +62,13 @@
       return null;
     }
 
+    // Anime "impact frame": a few inverted / high-contrast frames on big hits.
+    impactFrame(x, y) {
+      if (SB.settings.impactFrames === false) return;
+      this.impact = 6;
+      this.impactAt = { x, y };
+    }
+
     shake(a) {
       if (SB.settings.shake) this.shakeAmt = Math.max(this.shakeAmt, a);
     }
@@ -78,7 +85,7 @@
     startFinal(user) {
       const fs = new SB.FinalSmash(this, user);
       this.finals.push(fs);
-      this.announce = { text: fs.name, sub: user.def.name, color: user.pal.glow, t: 90 };
+      this.announce = { text: fs.name, sub: user.def.fullName || user.def.name, color: user.pal.glow, t: 90, fighter: user };
       this.flash(0.6);
     }
 
@@ -96,8 +103,9 @@
       this.phaseT++;
       if (this.announce && --this.announce.t <= 0) this.announce = null;
       if (this.phase === 'countdown') {
-        if (this.phaseT === 1 || this.phaseT === 61 || this.phaseT === 121) SB.audio.play('countdown', false);
-        if (this.phaseT >= 180) {
+        // VS splash (95 frames), then 3-2-1.
+        if (this.phaseT === 96 || this.phaseT === 148 || this.phaseT === 200) SB.audio.play('countdown', false);
+        if (this.phaseT >= 252) {
           this.phase = 'play';
           this.phaseT = 0;
           SB.audio.play('countdown', true);
@@ -163,7 +171,22 @@
       this.updateCamera();
     }
 
+    // Weapons drop in regularly (Brawlhalla-style), independent of the items rule.
+    spawnWeapons() {
+      if (this.cfg.weapons === false) return;
+      if (this.weaponTimer === undefined) this.weaponTimer = 200;
+      if (--this.weaponTimer > 0) return;
+      this.weaponTimer = SB.randInt(360, 640);
+      const onStage = this.items.filter((i) => i.type === 'weapon').length;
+      if (onStage >= 2) return;
+      const main = this.stage.solids[0];
+      const x = SB.rand(main.x + 60, main.x + main.w - 60);
+      const it = new SB.Item(this, 'weapon', x, -560);
+      this.items.push(it);
+    }
+
     spawnItems() {
+      this.spawnWeapons();
       if (!this.cfg.items || this.training) return;
       if (--this.itemTimer > 0) return;
       this.itemTimer = SB.randInt(480, 900);
@@ -204,7 +227,18 @@
           y = f.y + h.bone.y;
         }
         const base = h.dmg === 'counter' ? f.counterDmg : h.dmg;
-        out.push({ h, x, y, r: h.r * f.st.hbs, dmg: base * f.st.power * chargeMul, owner: f });
+        let dmg = base * f.st.power * chargeMul;
+        const w = f.weapon;
+        const armedBone = w && (h.bone === 'haA' || h.bone === 'elA' || h.bone === 'wtip' || h.bone === 'wmid');
+        if (armedBone) dmg *= w.dmg;
+        out.push({ h, x, y, r: h.r * f.st.hbs, dmg, owner: f });
+        // A held weapon extends hand attacks out to the blade.
+        if (w && h.bone === 'haA') {
+          for (const [bone, k] of [['wtip', 0.9], ['wmid', 0.85]]) {
+            const j = f.jointWorld(bone);
+            out.push({ h, x: j.x, y: j.y, r: h.r * f.st.hbs * k, dmg, owner: f });
+          }
+        }
       }
       return out;
     }
@@ -435,6 +469,7 @@
       SB.audio.play('hit', strength, kind === 'kick' ? 'punch' : kind);
       if (SB.settings.damageNumbers && dmg >= 1) this.fx.floatText(hx, hy - 30, Math.round(dmg) + '%', '#ffffff', 16 + Math.min(14, dmg));
       if (kb > 90) this.shake(Math.min(18, kb / 14));
+      if (h.finisher || kb > 175) this.impactFrame(hx, hy);
       if (h.finisher) {
         // Named combo finishers land with extra impact.
         this.freeze = Math.max(this.freeze, 8);
@@ -523,6 +558,7 @@
       let ang = Math.atan2(vy, vx);
       if (Math.hypot(vx, vy) < 1) ang = Math.atan2(f.y - f.h / 2 - this.cam.y, f.x - this.cam.x);
       this.fx.koBlast(px, py, ang, f.color);
+      this.impactFrame(f.x, f.y - f.h / 2);
       this.shake(20);
       this.flash(0.5);
       this.freeze = 10;
@@ -626,6 +662,7 @@
         this.shakeAmt = 0;
       }
       if (this.flashAmt > 0) this.flashAmt = Math.max(0, this.flashAmt - 0.04);
+      if (this.impact > 0) this.impact--;
       const wantDim = this.finals.length ? 0.45 : 0;
       this.dim += (wantDim - this.dim) * 0.08;
     }

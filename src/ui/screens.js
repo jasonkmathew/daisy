@@ -126,16 +126,19 @@
       const R = SB.ROSTER;
       R.forEach((c, i) => {
         const x = W / 2 + (i - 1.5) * 240;
-        const y = H - 70;
+        const y = H - 58;
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath();
         ctx.ellipse(x, y + 2, 60, 10, 0, 0, TAU);
         ctx.fill();
-        SB.FighterRenderer.drawPreview(ctx, c, 0, x, y, 1.7, t + i * 30, i % 2 ? 'idle' : 'victory', 'title' + i);
+        SB.FighterRenderer.drawPreview(ctx, c, 0, x, y, c.id === 'titan' ? 1.35 : 1.55, t + i * 30, i % 2 ? 'idle' : 'victory', 'title' + i);
       });
       logo(ctx, W / 2, 210 + Math.sin(t * 0.03) * 6, 1, t);
-      if (Math.floor(t / 30) % 2 === 0 || t < 20) T(ctx, 'PRESS ENTER OR CLICK TO START', W / 2, 395, 24, '#ffffff');
-      T(ctx, 'QWER combo platform fighter  •  Arrows move  •  Shift crouch  •  4 fighters  •  4 stages', W / 2, 428, 15, '#cfd6ff', 'center', null, 600);
+      ctx.fillStyle = 'rgba(8,4,24,0.6)';
+      SB.roundRect(ctx, W / 2 - 330, 396, 660, 30, 15);
+      ctx.fill();
+      T(ctx, 'QWER anime combo brawler  •  Arrows move  •  Shift crouch  •  Space dodge  •  R weapons', W / 2, 416, 15, '#cfd6ff', 'center', null, 600);
+      if (Math.floor(t / 30) % 2 === 0 || t < 20) T(ctx, 'PRESS ENTER OR CLICK TO START', W / 2, 382, 24, '#ffffff');
     }
   }
 
@@ -322,8 +325,9 @@
         ctx.fill();
       }
       ctx.globalAlpha = 1;
-      const sc = c.id === 'titan' ? 1.08 : 1.35;
-      SB.FighterRenderer.drawPreview(ctx, c, 0, 0, y + w.h - 42, sc, t, focus ? 'victory' : 'idle', 'card' + c.id);
+      // Waist-up framing like an anime roster card.
+      const sc = c.id === 'titan' ? 1.45 : 1.75;
+      SB.FighterRenderer.drawPreview(ctx, c, 0, 0, y + 30 + c.h * sc, sc, t, 'idle', 'card' + c.id);
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.fillRect(x, y + w.h - 40, w.w, 40);
       ctx.restore();
@@ -527,11 +531,11 @@
     }
     draw(ctx) {
       menuBackground(ctx, this.t);
-      title(ctx, 'CONTROLS', 'Arrow keys to move • Q W E R to fight • Shift to crouch • Space to shield');
+      title(ctx, 'CONTROLS', 'Arrow keys to move • Q W E R to fight • Shift to crouch • Space to dodge');
       const cols = [
-        ['KEYBOARD A', [['Move', 'Arrow keys'], ['Jump', 'Up arrow'], ['Crouch', 'Shift'], ['Light attack', 'Q'], ['Heavy / smash', 'W'], ['Special', 'E'], ['Grab', 'R'], ['Shield / dodge', 'Space']]],
-        ['KEYBOARD B', [['Move', 'Num 4 5 6 / J K L'], ['Jump', 'Num 8 / I'], ['Crouch', 'Num 2 / M'], ['Light attack', 'Num 7 / U'], ['Heavy / smash', 'Num 9 / O'], ['Special', 'Num 1 / P'], ['Grab', 'Num 3 / ['], ['Shield / dodge', 'Num 0 / N']]],
-        ['GAMEPAD', [['Move', 'Left stick / D-pad'], ['Jump', 'X'], ['Crouch', 'Stick down / L3'], ['Light attack', 'A'], ['Heavy / smash', 'Y / right stick'], ['Special', 'B'], ['Grab', 'RB'], ['Shield / dodge', 'LB / LT / RT']]],
+        ['KEYBOARD A', [['Move', 'Arrow keys'], ['Jump', 'Up arrow'], ['Crouch', 'Shift'], ['Light attack', 'Q'], ['Heavy / smash', 'W'], ['Special', 'E'], ['Grab / weapon', 'R'], ['Dodge', 'Space']]],
+        ['KEYBOARD B', [['Move', 'Num 4 5 6 / J K L'], ['Jump', 'Num 8 / I'], ['Crouch', 'Num 2 / M'], ['Light attack', 'Num 7 / U'], ['Heavy / smash', 'Num 9 / O'], ['Special', 'Num 1 / P'], ['Grab / weapon', 'Num 3 / ['], ['Dodge', 'Num 0 / N']]],
+        ['GAMEPAD', [['Move', 'Left stick / D-pad'], ['Jump', 'X'], ['Crouch', 'Stick down / L3'], ['Light attack', 'A'], ['Heavy / smash', 'Y / right stick'], ['Special', 'B'], ['Grab / weapon', 'RB'], ['Dodge', 'LB / LT / RT']]],
       ];
       cols.forEach(([name, rows], i) => {
         const x = 70 + i * 390;
@@ -551,8 +555,8 @@
       const tips = [
         'COMBOS: when a hit lands, press the next button to chain: Q (light) → W (heavy) → E (special). See the COMBOS menu for named finishers.',
         'Direction + Q = tilt / aerial attacks.  Direction + W = smash attacks (hold W to charge).  Direction + E = four specials (Up + E recovers!).',
-        'Space + direction = roll, Space in the air = air dodge, tap Space just before landing while tumbling to TECH.  Shift or Down in the air = fast fall.',
-        'R grabs, then a direction throws.  Break the rainbow SMASH ORB and press E for your FINAL SMASH!   Esc = pause.',
+        'Space = spot dodge, Space + direction = roll, Space in the air = air dodge.  Hold toward a wall in the air to CLING, Up to wall-jump.  Down + W in the air = GROUND POUND.',
+        'Weapons drop from the sky: R to pick up, R again to throw.  R with empty hands grabs.  Break the SMASH ORB and press E for your FINAL!   Esc = pause.',
       ];
       tips.forEach((s, i) => T(ctx, s, W / 2, 506 + i * 30, 14, i === 0 ? '#ffe066' : '#e6e9ff', 'center', null, 700));
       this.menu.draw(ctx);
@@ -632,12 +636,12 @@
         SB.audio.applyVolumes();
       };
       const vol = (label, key) =>
-        m.add(spinner(x, (y += 58) - 58, 440, 46, label, () => '▮'.repeat(Math.round(S[key] * 10)).padEnd(10, '▯'), (d) => {
+        m.add(spinner(x, (y += 50) - 50, 440, 42, label, () => '▮'.repeat(Math.round(S[key] * 10)).padEnd(10, '▯'), (d) => {
           S[key] = SB.clamp(Math.round((S[key] + d * 0.1) * 10) / 10, 0, 1);
           save();
         }));
       const tog = (label, key, def = false) =>
-        m.add(spinner(x, (y += 58) - 58, 440, 46, label, () => ((S[key] === undefined ? def : S[key]) ? 'ON' : 'OFF'), () => {
+        m.add(spinner(x, (y += 50) - 50, 440, 42, label, () => ((S[key] === undefined ? def : S[key]) ? 'ON' : 'OFF'), () => {
           S[key] = !(S[key] === undefined ? def : S[key]);
           save();
         }));
@@ -647,8 +651,10 @@
       tog('SCREEN SHAKE', 'shake', true);
       tog('DAMAGE NUMBERS', 'damageNumbers', true);
       tog('GAMEPAD TAP JUMP', 'tapJump', true);
+      tog('GLOW / BLOOM', 'bloom', true);
+      tog('IMPACT FRAMES (FLASH)', 'impactFrames', true);
       tog('SHOW HITBOXES', 'hitboxes', false);
-      m.add(button(x, y + 6, 440, 50, 'TOGGLE FULLSCREEN', () => SB.toggleFullscreen(), { color: '#3d8bff' }));
+      m.add(button(x, y + 6, 440, 46, 'TOGGLE FULLSCREEN', () => SB.toggleFullscreen(), { color: '#3d8bff' }));
       m.add(button(40, 654, 180, 50, 'BACK', () => this.back(), { color: '#999999' }));
     }
     back() {

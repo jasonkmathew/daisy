@@ -97,6 +97,16 @@
     }
   }
 
-  app.go(new SB.Screens.TitleScreen());
-  requestAnimationFrame(frame);
+  // Wait (briefly) for the bundled fonts so the first frames use them.
+  const start = () => {
+    if (app.screen) return;
+    app.go(new SB.Screens.TitleScreen());
+    requestAnimationFrame(frame);
+  };
+  try {
+    Promise.all([document.fonts.load('40px "Bangers"'), document.fonts.load('20px "Russo One"')]).then(start, start);
+  } catch (e) {
+    start();
+  }
+  setTimeout(start, 1500);
 })();

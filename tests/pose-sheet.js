@@ -18,10 +18,10 @@ function loadPlaywright() {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   await page.goto('file://' + path.join(__dirname, '..', 'index.html'));
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(900);
   const sheets = await page.evaluate(() => {
     const out = {};
-    const states = ['IDLE', 'CROUCH', 'jumpsquat', 'rise', 'fall', 'shield', 'hurt', 'hurtAir', 'tumble', 'helpless', 'ledge', 'lying', 'grabbed', 'tuck', 'dashStart', 'skid', 'victory', 'HOLD'];
+    const states = ['IDLE', 'CROUCH', 'jumpsquat', 'rise', 'fall', 'wall', 'hurt', 'hurtAir', 'tumble', 'helpless', 'lying', 'grabbed', 'tuck', 'dashStart', 'skid', 'victory', 'HOLD'];
     for (const c of SB.ROSTER) {
       const moves = Object.values(c.moveset);
       const cols = 8;

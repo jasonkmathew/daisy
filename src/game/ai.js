@@ -71,11 +71,8 @@
     }
 
     stageInfo() {
-      const st = this.m.stage;
-      const L = st.ledges;
-      const left = L.length ? Math.min(...L.map((l) => l.x)) : -400;
-      const right = L.length ? Math.max(...L.map((l) => l.x)) : 400;
-      return { left, right, top: L.length ? L[0].y : 0 };
+      const main = this.m.stage.solids[0];
+      return { left: main.x, right: main.x + main.w, top: main.y, bottom: main.y + main.h };
     }
 
     decide() {
@@ -100,6 +97,12 @@
         return;
       }
       if (S === 'ledge') return this.onLedge(info);
+      if (S === 'wall') {
+        // Climb the wall with wall jumps, then drift back onto the stage.
+        this.sx = f.wallDir;
+        if (f.sf > 3 + (9 - lv)) this.press('jump');
+        return;
+      }
       if (S === 'down') {
         if (f.sf > 14 + this.rnd() * 20) {
           const r = this.rnd();
@@ -174,7 +177,19 @@
       const dx = Math.abs(f.x - edgeX);
       const below = f.y - info.top; // positive = below ledge height
       // Underneath the stage: drift out past the ledge first or we'd hit the underside.
-      const under = below > 10 && f.x > info.left - 25 && f.x < info.right + 25;
+      const under = f.y - f.h > info.bottom && f.x > info.left && f.x < info.right;
+      const aim = () => {
+        // Volt's teleport goes where the stick points: aim over the stage edge.
+        const tx = under ? edgeX - toward * 60 : edgeX + toward * 30;
+        const ty = info.top - 60;
+        const l = Math.hypot(tx - f.x, ty - f.y) || 1;
+        this.sx = (tx - f.x) / l;
+        this.sy = Math.min(-0.5, (ty - f.y) / l);
+      };
+      if (f.state === 'move' && f.move && f.move.id === 'uspec' && f.def.id === 'volt' && f.mf < 13) {
+        aim();
+        return;
+      }
       this.sx = under ? -toward : toward;
       this.sy = 0;
       if (f.state !== 'air' && f.state !== 'tumble') return;
@@ -190,16 +205,12 @@
         this.press('special');
         return;
       }
+      // Hug the wall when close so we can wall-jump up it.
+      if (below > 0 && below < info.bottom - info.top + 60 && dx < 90) this.sx = toward;
       // Up special when out of jumps (or low).
       if ((f.jumps === 0 && f.vy > 0 && (below > -110 || dx > 150)) || below > 120) {
-        if (f.def.id === 'volt') {
-          const tx = under ? edgeX - toward * 60 : edgeX - toward * 10;
-          const ty = info.top - 40;
-          const l = Math.hypot(tx - f.x, ty - f.y) || 1;
-          this.sx = (tx - f.x) / l;
-          this.sy = (ty - f.y) / l;
-          if (this.sy > -0.3) this.sy = -0.5;
-        } else this.sy = -1;
+        if (f.def.id === 'volt') aim();
+        else this.sy = -1;
         this.press('special');
       }
     }
@@ -315,8 +326,22 @@
         }
         return false;
       }
+      // Weapons: grab one if close, throw it at a distant target sometimes.
+      if (f.weapon) {
+        const dx = t.x - f.x;
+        if (Math.abs(dx) > 150 && Math.abs(dx) < 450 && Math.abs(t.y - f.y) < 90 && SB.sign(dx) === f.facing && this.rnd() < 0.01 * this.level) {
+          this.sx = 0;
+          this.press('grab');
+          return true;
+        }
+      }
       for (const it of m.items) {
         if (it.dead || it.holder) continue;
+        if (it.type === 'weapon' && !f.weapon && it.grounded && Math.abs(it.x - f.x) < 260 && Math.abs(it.y - f.y) < 60 && this.level >= 2) {
+          if (Math.abs(it.x - f.x) < 26) this.press('grab');
+          else this.walkTo(it.x, info);
+          return true;
+        }
         const d = Math.abs(it.x - f.x);
         if (it.type === 'heart' && f.damage > 40 && d < 500 && it.grounded) {
           this.walkTo(it.x, info);

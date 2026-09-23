@@ -5,6 +5,10 @@ const SB = (window.SB = window.SB || {});
 SB.W = 1280;
 SB.H = 720;
 SB.FPS = 60;
+// Bundled fonts (assets/fonts, SIL OFL): Bangers for anime-comic display text,
+// Russo One for UI text.
+SB.FONT_DISPLAY = '"Bangers", "Impact", "Segoe UI", sans-serif';
+SB.FONT_UI = '"Russo One", "Segoe UI", Arial, sans-serif';
 
 SB.clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 SB.lerp = (a, b, t) => a + (b - a) * t;

@@ -3,7 +3,7 @@
 'use strict';
 (function () {
   const TAU = Math.PI * 2;
-  const FONT = '"Segoe UI", "Trebuchet MS", Arial, sans-serif';
+  const FONT = SB.FONT_UI;
 
   class Menu {
     constructor() {

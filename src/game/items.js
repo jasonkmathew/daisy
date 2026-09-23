@@ -4,6 +4,13 @@
 (function () {
   const TAU = Math.PI * 2;
 
+  // Weapons that drop onto the stage (Brawlhalla-style). len = reach from the hand.
+  SB.WEAPONS = {
+    katana: { name: 'KATANA', len: 64, dmg: 1.18, color: '#cfe3ff' },
+    hammer: { name: 'WAR HAMMER', len: 54, dmg: 1.35, color: '#ffb15a' },
+    spear: { name: 'SPEAR', len: 86, dmg: 1.12, color: '#9dffb0' },
+  };
+
   class Item {
     constructor(match, type, x, y) {
       this.m = match;
@@ -19,7 +26,8 @@
       this.grounded = false;
       this.pickable = type === 'bomb';
       this.throwable = type === 'bomb';
-      this.r = type === 'orb' ? 26 : type === 'heart' ? 16 : 14;
+      this.r = type === 'orb' ? 26 : type === 'heart' ? 16 : type === 'weapon' ? 18 : 14;
+      this.wtype = type === 'weapon' ? SB.pick(Object.keys(SB.WEAPONS)) : null;
       this.life = type === 'orb' ? 1200 : 900;
       this.hp = 28;
       this.lastHitter = null;
@@ -79,7 +87,7 @@
         return;
       }
       if (this.thrownBy) this.throwT++;
-      this.vy = Math.min(this.vy + 0.55, 13);
+      this.vy = Math.min(this.vy + (this.type === 'weapon' ? 0.3 : 0.55), this.type === 'weapon' ? 7 : 13);
       const px = this.x;
       const py = this.y;
       this.x += this.vx;
@@ -226,6 +234,27 @@
           ctx.arc(3, -this.r - 17, 3.5, 0, TAU);
           ctx.fill();
         }
+        ctx.restore();
+      } else if (this.type === 'weapon') {
+        const w = SB.WEAPONS[this.wtype];
+        const bob = this.grounded ? Math.sin(t * 0.08) * 3 - 22 : -10;
+        ctx.save();
+        ctx.translate(x, y + bob);
+        // Light pillar + glow so weapons are easy to spot.
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createLinearGradient(0, -140, 0, 20);
+        g.addColorStop(0, SB.rgba(w.color, 0));
+        g.addColorStop(1, SB.rgba(w.color, 0.35));
+        ctx.fillStyle = g;
+        ctx.fillRect(-10, -140, 20, 160);
+        const rg = ctx.createRadialGradient(0, 0, 0, 0, 0, 34);
+        rg.addColorStop(0, SB.rgba(w.color, 0.7));
+        rg.addColorStop(1, SB.rgba(w.color, 0));
+        ctx.fillStyle = rg;
+        ctx.fillRect(-34, -34, 68, 68);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.rotate(-0.8 + Math.sin(t * 0.05) * 0.15);
+        SB.drawWeapon(ctx, this.wtype, w.len * 0.75, w.color);
         ctx.restore();
       } else if (this.type === 'orb') {
         ctx.save();

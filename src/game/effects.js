@@ -41,7 +41,11 @@
       const s = SB.clamp(strength, 0.2, 2);
       this.add({ type: 'flash', x, y, size: 26 + s * 40, life: 7, color: '#ffffff' }, true);
       this.add({ type: 'ring', x, y, size: 10, grow: 5 + s * 5, life: 12, color, width: 5 }, true);
-      this.add({ type: 'star', x, y, size: 20 + s * 26, life: 9, color, rot: SB.rand(0, 6) }, true);
+      // Anime impact burst: sharp radial spikes with a white core.
+      const rays = [];
+      const nr = 10 + Math.floor(s * 6);
+      for (let i = 0; i < nr; i++) rays.push([(i / nr) * Math.PI * 2 + SB.rand(-0.15, 0.15), SB.rand(0.45, 1.15)]);
+      this.add({ type: 'spikes', x, y, size: 34 + s * 44, life: 10, color, rays }, true);
       const n = Math.floor(6 + s * 10);
       for (let i = 0; i < n; i++) {
         const a = SB.rand(0, Math.PI * 2);
@@ -57,7 +61,7 @@
           this.add({ type: 'bolt', x, y, size: 30 + s * 30, life: SB.randInt(5, 10), color, rot: SB.rand(0, 6), seed: SB.randInt(1, 9999) }, true);
         }
       } else if (kind === 'slash') {
-        this.add({ type: 'slash', x, y, size: 50 + s * 40, life: 10, color, rot: SB.rand(-0.8, 0.8) }, true);
+        this.add({ type: 'crescent', x, y, size: 50 + s * 45, life: 11, color, rot: SB.rand(-0.9, 0.9) }, true);
       }
     }
 
@@ -236,6 +240,48 @@
         ctx.restore();
         break;
       }
+      case 'spikes': {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        const grow = 0.55 + age * 0.7;
+        ctx.globalAlpha = Math.min(1, t * 1.6);
+        for (const [pass, col, wmul] of [[0, p.color, 1], [1, '#ffffff', 0.5]]) {
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          for (const [a, l] of p.rays) {
+            const len = p.size * l * grow * (pass ? 0.72 : 1);
+            const w = p.size * 0.09 * wmul * t;
+            ctx.moveTo(Math.cos(a + Math.PI / 2) * w, Math.sin(a + Math.PI / 2) * w);
+            ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
+            ctx.lineTo(Math.cos(a - Math.PI / 2) * w, Math.sin(a - Math.PI / 2) * w);
+          }
+          ctx.fill();
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size * 0.22 * t, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        break;
+      }
+      case 'crescent': {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        const r = p.size * (0.7 + age * 0.4);
+        ctx.globalAlpha = t;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, r, -1.3, 1.3);
+        ctx.arc(-r * 0.25, 0, r * 0.92, 1.2, -1.2, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+        break;
+      }
       case 'streak': {
         const sp = Math.hypot(p.vx, p.vy) || 1;
         const l = p.len * Math.min(1, sp / 4);
@@ -393,7 +439,7 @@
       }
       case 'text': {
         ctx.globalAlpha = Math.min(1, t * 2);
-        ctx.font = `900 ${p.size}px "Segoe UI", Arial, sans-serif`;
+        ctx.font = `${Math.round(p.size * 1.2)}px ${SB.FONT_DISPLAY}`;
         ctx.textAlign = 'center';
         ctx.lineWidth = 5;
         ctx.strokeStyle = '#111';
